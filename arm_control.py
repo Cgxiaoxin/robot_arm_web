@@ -48,21 +48,23 @@ CMD_SET_PT_V = 0x1F    # 设置位置轨迹最大速度
 CMD_SET_PT_A = 0x20    # 设置位置轨迹加速度
 CMD_SET_PT_D = 0x21    # 设置位置轨迹减速度
 
-# 控制模式
-MODE_TORQUE = 1
-MODE_MIT = 2
-MODE_VELOCITY = 3
-MODE_PROFILE_VELOCITY = 4
-MODE_POSITION = 5
-MODE_PROFILE_POSITION = 6
+# 控制模式（与 lansi_arm_sdk.constants.MotorMode 保持一致）
+# 0: TORQUE, 1: MIT, 2: VELOCITY, 3: PROFILE_VELOCITY,
+# 4: POSITION, 5: PROFILE_POSITION
+MODE_TORQUE = 0
+MODE_MIT = 1
+MODE_VELOCITY = 2
+MODE_PROFILE_VELOCITY = 3
+MODE_POSITION = 4
+MODE_PROFILE_POSITION = 5
 
 MODE_NAMES = {
-    1: "力矩模式",
-    2: "MIT模式",
-    3: "速度模式",
-    4: "轨迹速度模式",
-    5: "位置模式",
-    6: "轨迹位置模式",
+    MODE_TORQUE: "力矩模式",
+    MODE_MIT: "MIT模式",
+    MODE_VELOCITY: "速度模式",
+    MODE_PROFILE_VELOCITY: "轨迹速度模式",
+    MODE_POSITION: "位置模式",
+    MODE_PROFILE_POSITION: "轨迹位置模式",
 }
 
 

@@ -20,12 +20,15 @@ class LansiMotorController:
     """蓝思电机CAN通信控制器"""
     
     # ========== 控制模式枚举 ==========
-    MODE_TORQUE = 1           # 力矩模式
-    MODE_MIT = 2              # MIT模式
-    MODE_VELOCITY = 3         # 速度模式
-    MODE_PROFILE_VELOCITY = 4 # 轨迹速度模式
-    MODE_POSITION = 5         # 位置模式
-    MODE_PROFILE_POSITION = 6 # 轨迹位置模式
+    # 与 lansi_arm_sdk.constants.MotorMode 保持一致:
+    # 0: TORQUE, 1: MIT, 2: VELOCITY, 3: PROFILE_VELOCITY,
+    # 4: POSITION, 5: PROFILE_POSITION
+    MODE_TORQUE = 0           # 力矩模式
+    MODE_MIT = 1              # MIT模式
+    MODE_VELOCITY = 2         # 速度模式
+    MODE_PROFILE_VELOCITY = 3 # 轨迹速度模式
+    MODE_POSITION = 4         # 位置模式
+    MODE_PROFILE_POSITION = 5 # 轨迹位置模式
     
     # ========== 命令码定义 ==========
     # 基础命令
