@@ -23,11 +23,11 @@
     --gray-light: #b0c2cc;
     --light: #f3f6f8;
     --white: #ffffff;
-    
+
     --radius: 8px;
     --radius-lg: 12px;
-    --shadow: 0 2px 8px rgba(0,0,0,0.12);
-    --shadow-lg: 0 4px 16px rgba(0,0,0,0.18);
+    --shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.18);
 }
 
 * {
@@ -200,8 +200,15 @@ body {
 }
 
 @keyframes pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7); }
-    50% { box-shadow: 0 0 0 10px rgba(244, 67, 54, 0); }
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.7);
+    }
+
+    50% {
+        box-shadow: 0 0 0 10px rgba(244, 67, 54, 0);
+    }
 }
 
 /* 大按钮 - 用于预设动作 */
@@ -254,14 +261,25 @@ body {
 
 .toast-msg {
     font-size: 13px;
-    color: rgba(255,255,255,0.92);
+    color: rgba(255, 255, 255, 0.92);
     white-space: pre-wrap;
 }
 
-.toast-success { border-color: rgba(76, 175, 80, 0.55); }
-.toast-warning { border-color: rgba(255, 152, 0, 0.55); }
-.toast-error { border-color: rgba(244, 67, 54, 0.55); }
-.toast-info { border-color: rgba(33, 150, 243, 0.55); }
+.toast-success {
+    border-color: rgba(76, 175, 80, 0.55);
+}
+
+.toast-warning {
+    border-color: rgba(255, 152, 0, 0.55);
+}
+
+.toast-error {
+    border-color: rgba(244, 67, 54, 0.55);
+}
+
+.toast-info {
+    border-color: rgba(33, 150, 243, 0.55);
+}
 
 /* ==================== 零点标定展示 ==================== */
 
@@ -273,7 +291,7 @@ body {
 
 .zero-panel {
     background: rgba(0, 0, 0, 0.12);
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: var(--radius);
     padding: 12px;
 }
@@ -286,7 +304,7 @@ body {
 .zero-list {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
     font-size: 12px;
-    color: rgba(255,255,255,0.92);
+    color: rgba(255, 255, 255, 0.92);
     line-height: 1.5;
     max-height: 160px;
     overflow: auto;
@@ -311,7 +329,7 @@ body {
 
 .speed-slider-wrap {
     background: rgba(0, 0, 0, 0.12);
-    border: 1px solid rgba(255,255,255,0.12);
+    border: 1px solid rgba(255, 255, 255, 0.12);
     border-radius: var(--radius);
     padding: 12px;
 }
@@ -427,7 +445,7 @@ body {
     font-size: 12px;
     font-weight: 600;
     color: var(--white);
-    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
 }
 
 /* ==================== 预设动作区 ==================== */
@@ -656,6 +674,32 @@ body {
     margin-bottom: 8px;
 }
 
+.joint-slider-small {
+    width: 100%;
+    margin: 4px 0 8px;
+    height: 6px;
+    -webkit-appearance: none;
+    background: var(--dark-light);
+    border-radius: 3px;
+}
+
+.joint-slider-small::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+}
+
+.joint-slider-small::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+}
+
 .motor-buttons {
     display: flex;
     gap: 4px;
@@ -757,35 +801,514 @@ body {
         flex-direction: column;
         gap: 12px;
     }
-    
-    .header-left, .header-right {
+
+    .header-left,
+    .header-right {
         width: 100%;
         justify-content: center;
     }
-    
+
     .main-container {
         padding: 12px;
     }
-    
+
     .preset-grid {
         grid-template-columns: repeat(3, 1fr);
     }
 }
 
+/* ==================== 笛卡尔控制区 ==================== */
+
+.cartesian-monitor {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 768px) {
+    .cartesian-monitor {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cartesian-arm-panel {
+    background: var(--dark);
+    border-radius: var(--radius);
+    padding: 14px;
+}
+
+.cartesian-panel-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-light);
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.cartesian-coords {
+    display: flex;
+    gap: 8px;
+}
+
+.coord-item {
+    flex: 1;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: var(--radius);
+    padding: 10px 8px;
+    text-align: center;
+    border: 1px solid transparent;
+}
+
+.coord-item.coord-x {
+    border-color: rgba(244, 67, 54, 0.3);
+}
+
+.coord-item.coord-y {
+    border-color: rgba(76, 175, 80, 0.3);
+}
+
+.coord-item.coord-z {
+    border-color: rgba(33, 150, 243, 0.3);
+}
+
+.coord-label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.coord-item.coord-x .coord-label {
+    color: var(--danger);
+}
+
+.coord-item.coord-y .coord-label {
+    color: var(--success);
+}
+
+.coord-item.coord-z .coord-label {
+    color: var(--primary);
+}
+
+.coord-value {
+    display: block;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 2px;
+}
+
+.coord-unit {
+    display: block;
+    font-size: 11px;
+    color: var(--gray);
+}
+
+/* 笛卡尔点动按钮 */
+
+.cartesian-jog-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+@media (max-width: 768px) {
+    .cartesian-jog-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.jog-axis {
+    background: var(--dark);
+    border-radius: var(--radius);
+    padding: 14px;
+    text-align: center;
+}
+
+.jog-axis-label {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: var(--gray-light);
+}
+
+.jog-axis-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+.jog-btn-neg,
+.jog-btn-pos {
+    min-width: 80px;
+    min-height: 48px;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.jog-btn-neg:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.jog-btn-pos:hover {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+/* 绝对坐标控制 */
+
+.cartesian-absolute {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+    flex-wrap: wrap;
+}
+
+.cartesian-absolute .input-group {
+    flex: 1;
+    min-width: 120px;
+    margin-bottom: 0;
+}
+
+/* ==================== 笛卡尔滑杆控制 ==================== */
+
+.cartesian-slider-section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 12px;
+    background: var(--dark);
+    border-radius: var(--radius);
+}
+
+.cart-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.cart-slider-label {
+    font-size: 16px;
+    font-weight: 700;
+    width: 22px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.cart-label-x {
+    color: var(--danger);
+}
+
+.cart-label-y {
+    color: var(--success);
+}
+
+.cart-label-z {
+    color: var(--primary);
+}
+
+.cart-slider-min,
+.cart-slider-max {
+    font-size: 11px;
+    color: var(--gray-light);
+    flex-shrink: 0;
+    width: 30px;
+    text-align: center;
+}
+
+.cart-slider {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: var(--gray);
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+}
+
+.cart-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(33, 150, 243, 0.4);
+    transition: transform 0.15s;
+}
+
+.cart-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.cart-slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--primary);
+    cursor: pointer;
+    border: none;
+}
+
+.cart-slider-input-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.cart-slider-input {
+    width: 72px;
+    padding: 4px 6px;
+    background: var(--bg);
+    border: 1px solid var(--gray);
+    border-radius: var(--radius);
+    color: var(--white);
+    font-size: 13px;
+    text-align: center;
+}
+
+.cart-slider-unit {
+    font-size: 12px;
+    color: var(--gray-light);
+}
+
+.btn-sm {
+    padding: 4px 10px;
+    min-height: 28px;
+    font-size: 12px;
+}
+
+/* ==================== 轨迹示教编辑器 ==================== */
+
+.trajectory-editor {
+    background: var(--dark);
+    border: 1px solid var(--gray);
+    border-radius: var(--radius);
+    padding: 16px;
+    margin-top: 12px;
+}
+
+.traj-editor-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.traj-editor-header h4 {
+    margin: 0;
+    color: var(--primary);
+}
+
+.traj-meta-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.traj-meta-row .input-group {
+    flex: 1;
+    min-width: 140px;
+    margin-bottom: 0;
+}
+
+.traj-point-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray-light);
+    border-bottom: 1px solid var(--gray);
+}
+
+.traj-point-list {
+    max-height: 260px;
+    overflow-y: auto;
+    margin-bottom: 12px;
+}
+
+.traj-point-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    transition: background 0.15s;
+}
+
+.traj-point-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.traj-point-idx {
+    width: 24px;
+    text-align: center;
+    font-weight: 700;
+    color: var(--primary);
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.traj-point-name {
+    flex: 1;
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.traj-point-delay {
+    font-size: 12px;
+    color: var(--gray-light);
+    flex-shrink: 0;
+    width: 60px;
+    text-align: right;
+}
+
+.traj-point-actions {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
+.traj-point-actions button {
+    padding: 2px 6px;
+    font-size: 11px;
+    min-height: 22px;
+    background: var(--bg);
+    border: 1px solid var(--gray);
+    border-radius: 4px;
+    color: var(--white);
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.traj-point-actions button:hover {
+    background: var(--gray);
+}
+
+.traj-point-actions button.btn-del:hover {
+    background: var(--danger);
+}
+
+.traj-record-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 0;
+    flex-wrap: wrap;
+}
+
+.traj-empty-hint {
+    padding: 20px;
+    text-align: center;
+    color: var(--gray-light);
+    font-size: 13px;
+}
+
+.traj-file-list {
+    background: var(--dark);
+    border: 1px solid var(--gray);
+    border-radius: var(--radius);
+    padding: 8px;
+    margin-bottom: 12px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.traj-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.traj-file-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.traj-file-info {
+    flex: 1;
+}
+
+.traj-file-name {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.traj-file-meta {
+    font-size: 12px;
+    color: var(--gray-light);
+}
+
 /* ==================== 工具类 ==================== */
 
-.flex { display: flex; }
-.flex-wrap { flex-wrap: wrap; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
-.gap-2 { gap: 8px; }
-.gap-3 { gap: 12px; }
-.gap-4 { gap: 16px; }
-.mt-2 { margin-top: 8px; }
-.mt-3 { margin-top: 12px; }
-.mt-4 { margin-top: 16px; }
-.mb-2 { margin-bottom: 8px; }
-.mb-3 { margin-bottom: 12px; }
-.text-center { text-align: center; }
-.text-right { text-align: right; }
-.hidden { display: none; }
+.flex {
+    display: flex;
+}
+
+.flex-wrap {
+    flex-wrap: wrap;
+}
+
+.items-center {
+    align-items: center;
+}
+
+.justify-between {
+    justify-content: space-between;
+}
+
+.gap-2 {
+    gap: 8px;
+}
+
+.gap-3 {
+    gap: 12px;
+}
+
+.gap-4 {
+    gap: 16px;
+}
+
+.mt-2 {
+    margin-top: 8px;
+}
+
+.mt-3 {
+    margin-top: 12px;
+}
+
+.mt-4 {
+    margin-top: 16px;
+}
+
+.mb-2 {
+    margin-bottom: 8px;
+}
+
+.mb-3 {
+    margin-bottom: 12px;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.text-right {
+    text-align: right;
+}
+
+.hidden {
+    display: none;
+}

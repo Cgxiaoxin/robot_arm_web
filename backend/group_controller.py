@@ -22,9 +22,14 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from arm_control import ArmController, MODE_PROFILE_POSITION
 
 from .config import (
-    DEFAULT_LEFT_CAN, DEFAULT_RIGHT_CAN,
-    TRAJECTORIES_DIR, SPEED_PRESETS,
-    LEFT_MOTOR_IDS, RIGHT_MOTOR_IDS
+    DEFAULT_LEFT_CAN,
+    DEFAULT_RIGHT_CAN,
+    TRAJECTORIES_DIR,
+    SPEED_PRESETS,
+    LEFT_MOTOR_IDS,
+    RIGHT_MOTOR_IDS,
+    JOINT_LIMITS,
+    ZERO_OFFSET_FILE,
 )
 
 
@@ -100,6 +105,13 @@ class GroupController:
         self._on_state_update: Optional[Callable] = None
         self._on_playback_progress: Optional[Callable] = None
         self._on_error: Optional[Callable] = None
+
+        # 预计算的软关节限位（按电机ID展开）
+        self.joint_limits: Dict[str, Dict[int, Dict[str, float]]] = {
+            "left": {},
+            "right": {},
+        }
+        self._init_joint_limits()
     
     def set_callbacks(self, 
                       on_state_update: Optional[Callable] = None,
@@ -109,6 +121,42 @@ class GroupController:
         self._on_state_update = on_state_update
         self._on_playback_progress = on_playback_progress
         self._on_error = on_error
+
+    # ==================== 内部工具 ====================
+
+    def _init_joint_limits(self):
+        """根据配置初始化每个电机的软关节限位"""
+        try:
+            left_cfg = JOINT_LIMITS.get("left", {})
+            right_cfg = JOINT_LIMITS.get("right", {})
+
+            for idx, mid in enumerate(LEFT_MOTOR_IDS):
+                mins = left_cfg.get("position_min") or []
+                maxs = left_cfg.get("position_max") or []
+                min_v = float(mins[idx]) if idx < len(mins) else -3.14
+                max_v = float(maxs[idx]) if idx < len(maxs) else 3.14
+                self.joint_limits["left"][mid] = {"min": min_v, "max": max_v}
+
+            for idx, mid in enumerate(RIGHT_MOTOR_IDS):
+                mins = right_cfg.get("position_min") or []
+                maxs = right_cfg.get("position_max") or []
+                min_v = float(mins[idx]) if idx < len(mins) else -3.14
+                max_v = float(maxs[idx]) if idx < len(maxs) else 3.14
+                self.joint_limits["right"][mid] = {"min": min_v, "max": max_v}
+        except Exception as e:
+            # 出现异常时回退到对称范围
+            print(f"[GroupController] 初始化关节限位失败，使用默认值: {e}")
+            for mid in LEFT_MOTOR_IDS:
+                self.joint_limits["left"][mid] = {"min": -3.14, "max": 3.14}
+            for mid in RIGHT_MOTOR_IDS:
+                self.joint_limits["right"][mid] = {"min": -3.14, "max": 3.14}
+
+    def _get_joint_limit(self, arm_id: str, motor_id: int) -> Optional[Dict[str, float]]:
+        """获取单个关节的软限位"""
+        arm_limits = self.joint_limits.get(arm_id)
+        if not arm_limits:
+            return None
+        return arm_limits.get(motor_id)
     
     def _emit_error(self, message: str):
         """发送错误消息"""
@@ -147,7 +195,11 @@ class GroupController:
             try:
                 print(f"[GroupController] 连接 {arm_id} 臂 ({channel})...")
                 motor_ids = LEFT_MOTOR_IDS if arm_id == "left" else RIGHT_MOTOR_IDS
-                controller = ArmController(motor_ids=motor_ids, can_channel=channel)
+                controller = ArmController(
+                    motor_ids=motor_ids,
+                    can_channel=channel,
+                    zero_offset_file=str(ZERO_OFFSET_FILE),
+                )
                 
                 connected_ok = True
                 if hasattr(controller, "connect"):
@@ -359,7 +411,8 @@ class GroupController:
                     "total_points": self.playback.total_points,
                     "progress": self.playback.progress
                 },
-                "arms": {}
+                "arms": {},
+                "joint_limits": {"left": {}, "right": {}},
             }
             
             for arm_id in ["left", "right"]:
@@ -376,6 +429,7 @@ class GroupController:
                             "mode": getattr(motor, 'mode', 0)
                         }
                 
+                # 组装关节状态
                 state["arms"][arm_id] = {
                     "connected": arm_state.connected,
                     "initialized": arm_state.initialized,
@@ -383,6 +437,13 @@ class GroupController:
                     "error": arm_state.error,
                     "motors": motors_data
                 }
+
+                # 附加关节软限位信息
+                for mid, limits in self.joint_limits.get(arm_id, {}).items():
+                    state["joint_limits"][arm_id][str(mid)] = {
+                        "min": limits["min"],
+                        "max": limits["max"],
+                    }
             
             return state
     
@@ -405,7 +466,17 @@ class GroupController:
             if controller is None:
                 self._emit_error(f"{arm_id} 臂未连接")
                 return False
-            
+
+            # 软限位检查（防御性校验）
+            limits = self._get_joint_limit(arm_id, motor_id)
+            if limits is not None:
+                if position < limits["min"] or position > limits["max"]:
+                    self._emit_error(
+                        f"{arm_id} 臂电机 {motor_id} 目标位置 {position:.4f} 超出软限位 "
+                        f"[{limits['min']:.4f}, {limits['max']:.4f}]"
+                    )
+                    return False
+
             try:
                 controller.set_position(motor_id, position)
                 return True
@@ -420,7 +491,17 @@ class GroupController:
             if controller is None:
                 self._emit_error(f"{arm_id} 臂未连接")
                 return False
-            
+
+            # 软限位检查：这里的 position 视为相对零点后的目标角度
+            limits = self._get_joint_limit(arm_id, motor_id)
+            if limits is not None:
+                if position < limits["min"] or position > limits["max"]:
+                    self._emit_error(
+                        f"{arm_id} 臂电机 {motor_id} 相对零点目标位置 {position:.4f} 超出软限位 "
+                        f"[{limits['min']:.4f}, {limits['max']:.4f}]"
+                    )
+                    return False
+
             try:
                 controller.set_position_with_offset(motor_id, position)
                 return True
@@ -690,27 +771,9 @@ class GroupController:
         # 获取要控制的机械臂
         arms = self._get_target_arms()
         
-        if self.target == ControlTarget.BOTH and len(arms) == 2:
-            # 同步控制：使用线程同时启动
-            threads = []
-            for arm_id, controller in arms:
-                t = threading.Thread(
-                    target=self._move_arm_to_positions,
-                    args=(controller, positions)
-                )
-                threads.append(t)
-            
-            # 同时启动所有线程（时间差 < 1ms）
-            for t in threads:
-                t.start()
-            
-            # 等待所有线程完成
-            for t in threads:
-                t.join()
-        else:
-            # 单臂控制
-            for arm_id, controller in arms:
-                self._move_arm_to_positions(controller, positions)
+        # 顺序执行双臂运动（避免CAN总线冲突）
+        for arm_id, controller in arms:
+            self._move_arm_to_positions(controller, positions)
     
     def _move_arm_to_positions(self, controller: ArmController, positions: Dict):
         """移动机械臂到指定位置"""

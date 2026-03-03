@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>机械臂演出控制系统</title>
-    <link rel="stylesheet" href="css/style.css">
+    <title>机械臂示教控制系统</title>
+    <link rel="stylesheet" href="css/style.css?v=2">
 </head>
+
 <body>
     <!-- ==================== 头部 ==================== -->
     <header class="header">
         <div class="header-left">
-            <div class="logo">🤖 机械臂演出控制</div>
+            <div class="logo">🤖 机械臂示教控制</div>
             <div class="status-indicator">
                 <span class="status-dot"></span>
                 <span class="status-text">未连接</span>
@@ -28,7 +30,7 @@
 
     <!-- ==================== 主容器 ==================== -->
     <main class="main-container">
-        
+
         <!-- 轨迹播放区 -->
         <div class="card">
             <div class="card-header">
@@ -119,15 +121,19 @@
                                     <th>电机</th>
                                     <th>位置(rad)</th>
                                     <th>角度</th>
+                                    <th>最小(rad)</th>
+                                    <th>最大(rad)</th>
                                     <th>状态</th>
                                 </tr>
                             </thead>
                             <tbody id="left-motors-tbody">
-                                <tr><td colspan="4" class="text-center">未连接</td></tr>
+                                <tr>
+                                    <td colspan="6" class="text-center">未连接</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
-                    
+
                     <!-- 右臂 -->
                     <div class="arm-panel">
                         <div class="arm-panel-header">
@@ -140,11 +146,15 @@
                                     <th>电机</th>
                                     <th>位置(rad)</th>
                                     <th>角度</th>
+                                    <th>最小(rad)</th>
+                                    <th>最大(rad)</th>
                                     <th>状态</th>
                                 </tr>
                             </thead>
                             <tbody id="right-motors-tbody">
-                                <tr><td colspan="4" class="text-center">未连接</td></tr>
+                                <tr>
+                                    <td colspan="6" class="text-center">未连接</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -179,6 +189,7 @@
         <div class="card">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="manual">手动控制</button>
+                <button class="tab-btn" data-tab="cartesian">笛卡尔控制</button>
                 <button class="tab-btn" data-tab="teaching">示教编程</button>
                 <button class="tab-btn" data-tab="speed">速度设置</button>
                 <button class="tab-btn" data-tab="log">系统日志</button>
@@ -198,12 +209,14 @@
                     <button class="btn btn-warning" onclick="enableFreedrive()">启用自由拖动</button>
                     <button class="btn btn-outline" onclick="disableFreedrive()">退出自由拖动</button>
                 </div>
-                
+
                 <h4 class="mb-2">左臂控制</h4>
                 <div class="manual-control mb-3">
                     <div class="motor-control" data-arm="left" data-motor="51">
                         <div class="motor-label">关节 51</div>
                         <div class="motor-position" id="pos-left-51">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="51" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 51, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 51)">0</button>
@@ -213,6 +226,8 @@
                     <div class="motor-control" data-arm="left" data-motor="52">
                         <div class="motor-label">关节 52</div>
                         <div class="motor-position" id="pos-left-52">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="52" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 52, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 52)">0</button>
@@ -222,6 +237,8 @@
                     <div class="motor-control" data-arm="left" data-motor="53">
                         <div class="motor-label">关节 53</div>
                         <div class="motor-position" id="pos-left-53">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="53" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 53, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 53)">0</button>
@@ -231,6 +248,8 @@
                     <div class="motor-control" data-arm="left" data-motor="54">
                         <div class="motor-label">关节 54</div>
                         <div class="motor-position" id="pos-left-54">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="54" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 54, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 54)">0</button>
@@ -240,6 +259,8 @@
                     <div class="motor-control" data-arm="left" data-motor="55">
                         <div class="motor-label">关节 55</div>
                         <div class="motor-position" id="pos-left-55">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="55" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 55, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 55)">0</button>
@@ -249,6 +270,8 @@
                     <div class="motor-control" data-arm="left" data-motor="56">
                         <div class="motor-label">关节 56</div>
                         <div class="motor-position" id="pos-left-56">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="56" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 56, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 56)">0</button>
@@ -258,6 +281,8 @@
                     <div class="motor-control" data-arm="left" data-motor="57">
                         <div class="motor-label">关节 57</div>
                         <div class="motor-position" id="pos-left-57">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="left" data-motor="57" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('left', 57, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('left', 57)">0</button>
@@ -265,12 +290,14 @@
                         </div>
                     </div>
                 </div>
-                
+
                 <h4 class="mb-2">右臂控制</h4>
                 <div class="manual-control">
                     <div class="motor-control" data-arm="right" data-motor="61">
                         <div class="motor-label">关节 61</div>
                         <div class="motor-position" id="pos-right-61">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="61" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 61, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 61)">0</button>
@@ -280,6 +307,8 @@
                     <div class="motor-control" data-arm="right" data-motor="62">
                         <div class="motor-label">关节 62</div>
                         <div class="motor-position" id="pos-right-62">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="62" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 62, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 62)">0</button>
@@ -289,6 +318,8 @@
                     <div class="motor-control" data-arm="right" data-motor="63">
                         <div class="motor-label">关节 63</div>
                         <div class="motor-position" id="pos-right-63">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="63" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 63, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 63)">0</button>
@@ -298,6 +329,8 @@
                     <div class="motor-control" data-arm="right" data-motor="64">
                         <div class="motor-label">关节 64</div>
                         <div class="motor-position" id="pos-right-64">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="64" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 64, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 64)">0</button>
@@ -307,6 +340,8 @@
                     <div class="motor-control" data-arm="right" data-motor="65">
                         <div class="motor-label">关节 65</div>
                         <div class="motor-position" id="pos-right-65">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="65" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 65, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 65)">0</button>
@@ -316,6 +351,8 @@
                     <div class="motor-control" data-arm="right" data-motor="66">
                         <div class="motor-label">关节 66</div>
                         <div class="motor-position" id="pos-right-66">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="66" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 66, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 66)">0</button>
@@ -325,12 +362,165 @@
                     <div class="motor-control" data-arm="right" data-motor="67">
                         <div class="motor-label">关节 67</div>
                         <div class="motor-position" id="pos-right-67">0.0000</div>
+                        <input class="joint-slider-small" type="range" data-arm="right" data-motor="67" min="-3.14"
+                            max="3.14" step="0.01" value="0">
                         <div class="motor-buttons">
                             <button class="motor-btn" onclick="jogMotor('right', 67, -1)">−</button>
                             <button class="motor-btn zero" onclick="zeroMotor('right', 67)">0</button>
                             <button class="motor-btn" onclick="jogMotor('right', 67, 1)">+</button>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- 笛卡尔控制 Tab -->
+            <div id="tab-cartesian" class="tab-content">
+                <div class="flex items-center gap-3 mb-3">
+                    <label>增量步长:</label>
+                    <select id="cartesian-step" class="trajectory-select" style="width: 120px;">
+                        <option value="0.005">5 mm</option>
+                        <option value="0.01" selected>10 mm</option>
+                        <option value="0.02">20 mm</option>
+                        <option value="0.05">50 mm</option>
+                        <option value="0.1">100 mm</option>
+                    </select>
+                    <label>控制臂:</label>
+                    <select id="cartesian-arm" class="trajectory-select" style="width: 100px;">
+                        <option value="left">左臂</option>
+                        <option value="right">右臂</option>
+                    </select>
+                </div>
+
+                <!-- 实时位置显示 -->
+                <div class="cartesian-monitor">
+                    <div class="cartesian-arm-panel">
+                        <div class="cartesian-panel-header">左臂末端位置</div>
+                        <div class="cartesian-coords">
+                            <div class="coord-item coord-x">
+                                <span class="coord-label">X</span>
+                                <span class="coord-value" id="cart-left-x">0.00</span>
+                                <span class="coord-unit">mm</span>
+                            </div>
+                            <div class="coord-item coord-y">
+                                <span class="coord-label">Y</span>
+                                <span class="coord-value" id="cart-left-y">0.00</span>
+                                <span class="coord-unit">mm</span>
+                            </div>
+                            <div class="coord-item coord-z">
+                                <span class="coord-label">Z</span>
+                                <span class="coord-value" id="cart-left-z">0.00</span>
+                                <span class="coord-unit">mm</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="cartesian-arm-panel">
+                        <div class="cartesian-panel-header">右臂末端位置</div>
+                        <div class="cartesian-coords">
+                            <div class="coord-item coord-x">
+                                <span class="coord-label">X</span>
+                                <span class="coord-value" id="cart-right-x">0.00</span>
+                                <span class="coord-unit">mm</span>
+                            </div>
+                            <div class="coord-item coord-y">
+                                <span class="coord-label">Y</span>
+                                <span class="coord-value" id="cart-right-y">0.00</span>
+                                <span class="coord-unit">mm</span>
+                            </div>
+                            <div class="coord-item coord-z">
+                                <span class="coord-label">Z</span>
+                                <span class="coord-value" id="cart-right-z">0.00</span>
+                                <span class="coord-unit">mm</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 增量控制 -->
+                <h4 class="mb-2 mt-3">增量控制 (点动)</h4>
+                <div class="cartesian-jog-grid">
+                    <div class="jog-axis">
+                        <div class="jog-axis-label">X 轴</div>
+                        <div class="jog-axis-buttons">
+                            <button class="btn btn-outline jog-btn-neg" onclick="cartesianJog('x', -1)">− X</button>
+                            <button class="btn btn-outline jog-btn-pos" onclick="cartesianJog('x', 1)">+ X</button>
+                        </div>
+                    </div>
+                    <div class="jog-axis">
+                        <div class="jog-axis-label">Y 轴</div>
+                        <div class="jog-axis-buttons">
+                            <button class="btn btn-outline jog-btn-neg" onclick="cartesianJog('y', -1)">− Y</button>
+                            <button class="btn btn-outline jog-btn-pos" onclick="cartesianJog('y', 1)">+ Y</button>
+                        </div>
+                    </div>
+                    <div class="jog-axis">
+                        <div class="jog-axis-label">Z 轴</div>
+                        <div class="jog-axis-buttons">
+                            <button class="btn btn-outline jog-btn-neg" onclick="cartesianJog('z', -1)">− Z</button>
+                            <button class="btn btn-outline jog-btn-pos" onclick="cartesianJog('z', 1)">+ Z</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 滑杆 + 数值直达控制 -->
+                <h4 class="mb-2 mt-3">坐标滑杆控制</h4>
+                <div class="cartesian-slider-section">
+                    <div class="cart-slider-row">
+                        <span class="cart-slider-label cart-label-x">X</span>
+                        <span class="cart-slider-min">-500</span>
+                        <input class="cart-slider" type="range" id="cart-slider-x" min="-500" max="500" step="1"
+                            value="0">
+                        <span class="cart-slider-max">500</span>
+                        <div class="cart-slider-input-group">
+                            <input type="number" class="cart-slider-input" id="cart-input-x" value="0" step="1">
+                            <span class="cart-slider-unit">mm</span>
+                            <button class="btn btn-success btn-sm" onclick="cartesianInputMove('x')">移动</button>
+                        </div>
+                    </div>
+                    <div class="cart-slider-row">
+                        <span class="cart-slider-label cart-label-y">Y</span>
+                        <span class="cart-slider-min">-500</span>
+                        <input class="cart-slider" type="range" id="cart-slider-y" min="-500" max="500" step="1"
+                            value="0">
+                        <span class="cart-slider-max">500</span>
+                        <div class="cart-slider-input-group">
+                            <input type="number" class="cart-slider-input" id="cart-input-y" value="0" step="1">
+                            <span class="cart-slider-unit">mm</span>
+                            <button class="btn btn-success btn-sm" onclick="cartesianInputMove('y')">移动</button>
+                        </div>
+                    </div>
+                    <div class="cart-slider-row">
+                        <span class="cart-slider-label cart-label-z">Z</span>
+                        <span class="cart-slider-min">-500</span>
+                        <input class="cart-slider" type="range" id="cart-slider-z" min="-500" max="500" step="1"
+                            value="0">
+                        <span class="cart-slider-max">500</span>
+                        <div class="cart-slider-input-group">
+                            <input type="number" class="cart-slider-input" id="cart-input-z" value="0" step="1">
+                            <span class="cart-slider-unit">mm</span>
+                            <button class="btn btn-success btn-sm" onclick="cartesianInputMove('z')">移动</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 绝对坐标一键移动 -->
+                <h4 class="mb-2 mt-3">绝对坐标移动</h4>
+                <div class="cartesian-absolute">
+                    <div class="input-group">
+                        <label>X (mm):</label>
+                        <input type="number" id="cart-target-x" value="0" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Y (mm):</label>
+                        <input type="number" id="cart-target-y" value="0" step="1">
+                    </div>
+                    <div class="input-group">
+                        <label>Z (mm):</label>
+                        <input type="number" id="cart-target-z" value="0" step="1">
+                    </div>
+                    <button class="btn btn-success" onclick="cartesianMoveTo()">移动到目标</button>
+                </div>
+                <div class="mt-2" style="color: var(--gray-light); font-size: 13px;">
+                    坐标系: 以关节零位时的末端位置为原点, 单位 mm
                 </div>
             </div>
 
@@ -364,20 +554,86 @@
                         3. 之后所有位置都相对于这个零点
                     </p>
                 </div>
-                
+
                 <hr style="margin: 20px 0; border-color: var(--gray);">
-                
-                <h4 class="mb-2">轨迹示教</h4>
-                <div class="input-group">
-                    <label>点位名称:</label>
-                    <input type="text" id="point-name" placeholder="输入点位名称...">
-                    <button class="btn btn-success" onclick="recordPoint()">📍 记录当前位置</button>
+
+                <h4 class="mb-2">轨迹管理</h4>
+                <div class="flex gap-3 mb-3">
+                    <button class="btn btn-success" onclick="trajectoryNewPrompt()">📝 新建轨迹</button>
+                    <button class="btn btn-outline" onclick="trajectoryListAndLoad()">📂 加载轨迹</button>
+                    <button class="btn btn-outline" onclick="trajectoryListAndDelete()">🗑️ 删除轨迹</button>
+                    <button class="btn btn-outline" onclick="trajectoryRefreshList()">🔄 刷新列表</button>
                 </div>
-                <div class="mt-3">
-                    <p style="color: var(--gray-light);">
-                        提示：先使用"自由拖动"模式手动移动机械臂到目标位置，然后点击"记录当前位置"。
-                        录制完成后，轨迹会自动保存到 trajectories 目录。
-                    </p>
+
+                <!-- 轨迹文件列表 (动态显示) -->
+                <div id="traj-file-list" class="traj-file-list hidden"></div>
+
+                <!-- 轨迹编辑区 -->
+                <div id="traj-editor" class="trajectory-editor hidden">
+                    <div class="traj-editor-header">
+                        <h4 id="traj-editor-title">编辑轨迹</h4>
+                        <button class="btn btn-outline btn-sm" onclick="trajectoryCloseEdit()">✕ 关闭</button>
+                    </div>
+
+                    <div class="traj-meta-row">
+                        <div class="input-group">
+                            <label>名称:</label>
+                            <input type="text" id="traj-edit-name" placeholder="轨迹名称">
+                        </div>
+                        <div class="input-group">
+                            <label>描述:</label>
+                            <input type="text" id="traj-edit-desc" placeholder="可选描述...">
+                        </div>
+                    </div>
+                    <div class="traj-meta-row">
+                        <div class="input-group">
+                            <label>
+                                <input type="checkbox" id="traj-edit-loop"> 循环播放
+                            </label>
+                        </div>
+                        <div class="input-group">
+                            <label>速度倍率:</label>
+                            <input type="number" id="traj-edit-speed" value="1.0" step="0.1" min="0.1" max="5.0"
+                                style="width:80px;">
+                        </div>
+                    </div>
+
+                    <!-- 点位列表 -->
+                    <div class="traj-point-list-header">
+                        <span>点位列表</span>
+                        <span id="traj-point-count">0 个点位</span>
+                    </div>
+                    <div id="traj-point-list" class="traj-point-list">
+                        <div class="traj-empty-hint">暂无点位, 请使用下方按钮记录</div>
+                    </div>
+
+                    <!-- 记录点位 -->
+                    <div class="traj-record-bar">
+                        <input type="text" id="traj-point-name" placeholder="点位名称 (可选)" style="flex:1;">
+                        <div class="input-group" style="margin-bottom:0;">
+                            <label>延迟:</label>
+                            <input type="number" id="traj-point-delay" value="1.0" step="0.1" min="0"
+                                style="width:70px;">
+                            <span style="color:var(--gray-light);font-size:12px;">s</span>
+                        </div>
+                        <button class="btn btn-success" onclick="trajectoryAddPoint()">📍 记录当前位置</button>
+                    </div>
+
+                    <!-- 保存按钮 -->
+                    <div class="flex gap-3 mt-3">
+                        <button class="btn btn-primary" onclick="trajectorySave()">💾 保存轨迹</button>
+                        <button class="btn btn-outline" onclick="trajectoryPreview()">▶ 预览播放</button>
+                    </div>
+                </div>
+
+                <div class="mt-3" style="color: var(--gray-light); font-size: 13px;">
+                    <strong>示教流程：</strong>
+                    1. 新建/加载轨迹 →
+                    2. 拖动机械臂到目标位(自由拖动或手动控制) →
+                    3. 记录当前位置 →
+                    4. 重复2-3 →
+                    5. 保存轨迹 →
+                    6. 在播放区选择播放
                 </div>
             </div>
 
@@ -392,14 +648,16 @@
                 <div class="speed-slider-wrap mb-3">
                     <div class="speed-slider-row">
                         <label style="min-width: 80px;">速度滑杆:</label>
-                        <input id="speed-slider" type="range" min="0" max="2.0" step="0.01" value="0.5" class="speed-slider">
+                        <input id="speed-slider" type="range" min="0" max="2.0" step="0.01" value="0.5"
+                            class="speed-slider">
                         <div class="speed-slider-value">
                             <span id="speed-slider-value">0.50</span>
                             <span style="opacity: 0.85;">rad/s</span>
                         </div>
                     </div>
                     <div class="speed-slider-meta">
-                        当前速度：<span id="speed-current">0.50</span> rad/s（范围：<span id="speed-min">0</span> ~ <span id="speed-max">2.0</span>）
+                        当前速度：<span id="speed-current">0.50</span> rad/s（范围：<span id="speed-min">0</span> ~ <span
+                            id="speed-max">2.0</span>）
                     </div>
                 </div>
                 <div class="mt-3">
@@ -429,7 +687,8 @@
             <div id="tab-log" class="tab-content">
                 <div class="flex justify-between items-center mb-2">
                     <span style="color: var(--gray-light);">系统日志</span>
-                    <button class="btn btn-outline" onclick="clearLog()" style="padding: 4px 12px; min-height: 32px;">清空</button>
+                    <button class="btn btn-outline" onclick="clearLog()"
+                        style="padding: 4px 12px; min-height: 32px;">清空</button>
                 </div>
                 <div id="log-container" class="log-container">
                     <!-- 日志条目将动态添加 -->
@@ -442,6 +701,7 @@
     <!-- Socket.IO 客户端 -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- 主逻辑 -->
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=2"></script>
 </body>
+
 </html>

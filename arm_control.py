@@ -18,6 +18,7 @@ import threading
 import json
 import os
 import math
+from typing import Optional
 
 
 # 机械臂电机ID配置
@@ -108,10 +109,11 @@ class Motor:
 class ArmController:
     """机械臂控制器"""
     
-    def __init__(self, motor_ids=None, can_channel='can0', bitrate=1000000):
+    def __init__(self, motor_ids=None, can_channel='can0', bitrate=1000000, zero_offset_file: Optional[str] = None):
         self.motor_ids = motor_ids or MOTOR_IDS
         self.can_channel = can_channel
         self.bitrate = bitrate
+        self.zero_offset_file = zero_offset_file if zero_offset_file is not None else os.path.join(CONFIG_DIR, "zero_offset.json")
         
         self.bus = None
         self.motors = {}
@@ -194,14 +196,14 @@ class ArmController:
     
     def _load_zero_offsets(self):
         """加载零点偏移"""
-        if os.path.exists(ZERO_OFFSET_FILE):
+        if os.path.exists(self.zero_offset_file):
             try:
-                with open(ZERO_OFFSET_FILE, 'r') as f:
+                with open(self.zero_offset_file, 'r') as f:
                     data = json.load(f)
                     for mid in self.motor_ids:
                         if str(mid) in data:
                             self.zero_offsets[mid] = data[str(mid)]
-                print(f"已加载零点偏移: {ZERO_OFFSET_FILE}")
+                print(f"已加载零点偏移: {self.zero_offset_file}")
             except Exception as e:
                 print(f"加载零点偏移失败: {e}")
     
@@ -209,18 +211,18 @@ class ArmController:
         """保存零点偏移"""
         try:
             merged = {}
-            if os.path.exists(ZERO_OFFSET_FILE):
+            if os.path.exists(self.zero_offset_file):
                 try:
-                    with open(ZERO_OFFSET_FILE, 'r') as f:
+                    with open(self.zero_offset_file, 'r') as f:
                         data = json.load(f)
                         if isinstance(data, dict):
                             merged.update(data)
                 except Exception:
                     pass
             merged.update({str(k): v for k, v in self.zero_offsets.items()})
-            with open(ZERO_OFFSET_FILE, 'w') as f:
+            with open(self.zero_offset_file, 'w') as f:
                 json.dump(merged, f, indent=2)
-            print(f"已保存零点偏移: {ZERO_OFFSET_FILE}")
+            print(f"已保存零点偏移: {self.zero_offset_file}")
         except Exception as e:
             print(f"保存零点偏移失败: {e}")
     
@@ -486,29 +488,69 @@ class ArmController:
         """初始化机械臂"""
         print("\n初始化机械臂...")
         
-        print("  [1/4] 清除报警...")
+        print("  [1/5] 清除报警...")
         self.clear_all_alarms()
         time.sleep(0.3)
         
-        print("  [2/4] 读取当前位置...")
+        print("  [2/5] 读取当前位置...")
         self.read_all_positions()
         time.sleep(0.5)
         
         positions = self.get_positions()
+        all_zero = all(abs(pos) < 1e-6 for pos in positions.values())
         for mid, pos in positions.items():
             offset_pos = pos - self.zero_offsets[mid]
             print(f"    电机 {mid}: {pos:.4f} rad (相对零点: {offset_pos:.4f} rad)")
         
+        if all_zero:
+            print("  ⚠ 警告: 所有电机位置均为 0.0000，可能 CAN 通信异常（电机未回传数据）")
+        
         mode_name = MODE_NAMES.get(mode, f"模式{mode}")
-        print(f"  [3/4] 设置控制模式: {mode_name}...")
+        print(f"  [3/5] 设置控制模式: {mode_name}...")
         self.set_all_modes(mode)
         time.sleep(0.3)
         
-        print("  [4/4] 使能所有电机...")
+        print("  [4/5] 使能所有电机...")
         self.enable_all(True)
         time.sleep(0.3)
         
-        print("初始化完成!")
+        # [5/5] 验证使能状态
+        print("  [5/5] 验证使能状态...")
+        max_retries = 2
+        for attempt in range(max_retries + 1):
+            # 重新发送使能读取请求，确保拿到最新状态
+            for mid in self.motor_ids:
+                self.motors[mid].send_cmd(CMD_ENABLE, [1])
+                time.sleep(0.05)
+            time.sleep(0.5)  # 等待回传
+            
+            failed_motors = []
+            for mid in self.motor_ids:
+                motor = self.motors[mid]
+                status = "✓ 已使能" if motor.enabled else "✗ 使能失败"
+                print(f"    电机 {mid}: {status}")
+                if not motor.enabled:
+                    failed_motors.append(mid)
+            
+            if not failed_motors:
+                break
+            
+            if attempt < max_retries:
+                print(f"  ⚠ {len(failed_motors)} 个电机使能失败，正在重试 ({attempt + 1}/{max_retries})...")
+                # 重试：清除报警 → 重新设置模式 → 重新使能
+                self.clear_all_alarms()
+                time.sleep(0.3)
+                self.set_all_modes(mode)
+                time.sleep(0.3)
+                self.enable_all(True)
+                time.sleep(0.5)
+        
+        if failed_motors:
+            msg = f"以下电机使能失败: {failed_motors}，请检查 CAN 通信和电机驱动器状态"
+            print(f"  ✗ 初始化失败! {msg}")
+            raise RuntimeError(msg)
+        
+        print("初始化完成! 所有电机已使能 ✓")
         return positions
     
     def disable_arm(self):

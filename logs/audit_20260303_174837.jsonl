@@ -1,0 +1,1 @@
+{"timestamp": 1772531443.290716, "datetime": "2026-03-03 17:50:43", "session": "20260303_174837", "user": "system", "operation": "arm_connect", "details": {"sid": "zsAOCbJEPelDYrypAABF", "arm_id": "both", "left_channel": "can0", "right_channel": "can1", "results": {"left": true, "right": true}}}

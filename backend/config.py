@@ -29,6 +29,12 @@ STATE_UPDATE_INTERVAL = 200
 # 轨迹文件目录
 TRAJECTORIES_DIR = WEB_ROOT / "trajectories"
 
+# 日志目录
+LOG_DIR = WEB_ROOT / "logs"
+
+# 零点偏移文件（与 arm_control 共用，连接时自动读入，标定时更新）
+ZERO_OFFSET_FILE = WEB_ROOT / "zero_offset.json"
+
 # 预设动作配置
 PRESET_ACTIONS = {
     "A": "preset_a.json",
@@ -39,6 +45,10 @@ PRESET_ACTIONS = {
     "F": "preset_f.json",
 }
 
+################################################################################
+# 速度与关节限制配置
+################################################################################
+
 # 速度预设
 SPEED_PRESETS = {
     "very_slow": {"velocity": 0.2, "accel": 0.2, "decel": 0.2},
@@ -46,3 +56,21 @@ SPEED_PRESETS = {
     "medium": {"velocity": 1.0, "accel": 1.0, "decel": 1.0},
     "fast": {"velocity": 2.0, "accel": 2.0, "decel": 2.0},
 }
+
+# 软关节限位（弧度）
+# 说明：
+# - 默认采用较为保守的范围，避免在前端误操作导致大幅度摆动
+# - 如果后续有更精确的驱动/机构限制，可在此处调整
+JOINT_LIMITS = {
+    "left": {
+        # 对应 LEFT_MOTOR_IDS 顺序：51~57
+        "position_min": [-2.5, -2.5, -2.0, -2.0, -2.5, -2.5, -2.5],
+        "position_max": [2.5, 2.5, 2.0, 2.0, 2.5, 2.5, 2.5],
+    },
+    "right": {
+        # 对应 RIGHT_MOTOR_IDS 顺序：61~67
+        "position_min": [-2.5, -2.5, -2.0, -2.0, -2.5, -2.5, -2.5],
+        "position_max": [2.5, 2.5, 2.0, 2.0, 2.5, 2.5, 2.5],
+    },
+}
+
