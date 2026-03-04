@@ -24,3 +24,4 @@
 {"timestamp": 1772592903.3132305, "datetime": "2026-03-04 10:55:03", "session": "20260304_105247", "user": "system", "operation": "go_to_zero", "details": {"sid": "19YOuZTOHmxK8GgJAAAN", "arm_id": "target"}}
 {"timestamp": 1772592905.9037945, "datetime": "2026-03-04 10:55:05", "session": "20260304_105247", "user": "system", "operation": "arm_deactivate", "details": {"sid": "19YOuZTOHmxK8GgJAAAN", "arm_id": "all", "target": null}}
 {"timestamp": 1772593449.1832137, "datetime": "2026-03-04 11:04:09", "session": "20260304_105247", "user": "system", "operation": "arm_disconnect", "details": {"sid": "19YOuZTOHmxK8GgJAAAN", "arm_id": "both"}}
+{"timestamp": 1772608698.390821, "datetime": "2026-03-04 15:18:18", "session": "20260304_105247", "user": "system", "operation": "zero_load", "details": {"sid": "TJCJp1Gbnnr6XIgbAAAP"}}
