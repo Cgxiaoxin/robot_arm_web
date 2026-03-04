@@ -432,7 +432,8 @@ function playTrajectory() {
         showNotification('请先选择轨迹文件', 'warning');
         return;
     }
-    socket.emit('trajectory_play', { filename: filename, sync: true });
+    const loop = document.getElementById('loop-toggle')?.checked || false;
+    socket.emit('trajectory_play', { filename: filename, sync: true, loop: loop });
 }
 
 function pauseTrajectory() {

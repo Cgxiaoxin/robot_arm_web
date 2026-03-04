@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>机械臂示教控制系统</title>
-    <link rel="stylesheet" href="css/style.css?v=2">
+    <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 
 <body>
@@ -47,6 +47,11 @@
                     <select id="trajectory-select" class="trajectory-select">
                         <option value="">选择轨迹文件...</option>
                     </select>
+                    <label class="loop-toggle" title="循环播放">
+                        <input type="checkbox" id="loop-toggle">
+                        <span class="loop-toggle-slider"></span>
+                        <span class="loop-toggle-label">🔁 循环</span>
+                    </label>
                     <button id="btn-play" class="btn btn-success btn-large" onclick="resumeTrajectory()">
                         ▶ 播放
                     </button>
@@ -109,10 +114,10 @@
             </div>
             <div class="card-body">
                 <div class="monitor-grid">
-                    <!-- 左臂 -->
+                    <!-- 右臂 (程序内部 left / can0) -->
                     <div class="arm-panel">
                         <div class="arm-panel-header">
-                            <span class="arm-title">左臂 (can0)</span>
+                            <span class="arm-title">右臂 (can0)</span>
                             <span id="left-arm-status" class="arm-status">未连接</span>
                         </div>
                         <table class="motor-table">
@@ -134,10 +139,10 @@
                         </table>
                     </div>
 
-                    <!-- 右臂 -->
+                    <!-- 左臂 (程序内部 right / can1) -->
                     <div class="arm-panel">
                         <div class="arm-panel-header">
-                            <span class="arm-title">右臂 (can1)</span>
+                            <span class="arm-title">左臂 (can1)</span>
                             <span id="right-arm-status" class="arm-status">未连接</span>
                         </div>
                         <table class="motor-table">
@@ -170,11 +175,11 @@
             <div class="card-body">
                 <div class="target-selector">
                     <div class="target-option" data-target="left">
-                        <strong>仅左臂</strong>
+                        <strong>仅右臂</strong>
                         <div style="font-size: 12px; color: var(--gray-light);">can0</div>
                     </div>
                     <div class="target-option" data-target="right">
-                        <strong>仅右臂</strong>
+                        <strong>仅左臂</strong>
                         <div style="font-size: 12px; color: var(--gray-light);">can1</div>
                     </div>
                     <div class="target-option active" data-target="both">
@@ -210,7 +215,7 @@
                     <button class="btn btn-outline" onclick="disableFreedrive()">退出自由拖动</button>
                 </div>
 
-                <h4 class="mb-2">左臂控制</h4>
+                <h4 class="mb-2">右臂控制</h4>
                 <div class="manual-control mb-3">
                     <div class="motor-control" data-arm="left" data-motor="51">
                         <div class="motor-label">关节 51</div>
@@ -291,7 +296,7 @@
                     </div>
                 </div>
 
-                <h4 class="mb-2">右臂控制</h4>
+                <h4 class="mb-2">左臂控制</h4>
                 <div class="manual-control">
                     <div class="motor-control" data-arm="right" data-motor="61">
                         <div class="motor-label">关节 61</div>
@@ -386,15 +391,15 @@
                     </select>
                     <label>控制臂:</label>
                     <select id="cartesian-arm" class="trajectory-select" style="width: 100px;">
-                        <option value="left">左臂</option>
-                        <option value="right">右臂</option>
+                        <option value="left">右臂</option>
+                        <option value="right">左臂</option>
                     </select>
                 </div>
 
                 <!-- 实时位置显示 -->
                 <div class="cartesian-monitor">
                     <div class="cartesian-arm-panel">
-                        <div class="cartesian-panel-header">左臂末端位置</div>
+                        <div class="cartesian-panel-header">右臂末端位置</div>
                         <div class="cartesian-coords">
                             <div class="coord-item coord-x">
                                 <span class="coord-label">X</span>
@@ -414,7 +419,7 @@
                         </div>
                     </div>
                     <div class="cartesian-arm-panel">
-                        <div class="cartesian-panel-header">右臂末端位置</div>
+                        <div class="cartesian-panel-header">左臂末端位置</div>
                         <div class="cartesian-coords">
                             <div class="coord-item coord-x">
                                 <span class="coord-label">X</span>
@@ -534,11 +539,11 @@
                 </div>
                 <div class="zero-display mb-3">
                     <div class="zero-panel">
-                        <div class="zero-title">zero_arm0（左臂）</div>
+                        <div class="zero-title">zero_arm0（右臂）</div>
                         <div id="zero-left-list" class="zero-list">未加载</div>
                     </div>
                     <div class="zero-panel">
-                        <div class="zero-title">zero_arm1（右臂）</div>
+                        <div class="zero-title">zero_arm1（左臂）</div>
                         <div id="zero-right-list" class="zero-list">未加载</div>
                     </div>
                 </div>
@@ -701,7 +706,7 @@
     <!-- Socket.IO 客户端 -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
     <!-- 主逻辑 -->
-    <script src="js/main.js?v=2"></script>
+    <script src="js/main.js?v=3"></script>
 </body>
 
 </html>

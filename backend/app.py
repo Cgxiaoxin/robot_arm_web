@@ -1053,10 +1053,11 @@ def trajectory_play(sid, data):
     """
     播放轨迹
     
-    data: {"filename": "preset_a.json", "sync": true}
+    data: {"filename": "preset_a.json", "sync": true, "loop": false}
     """
     filename = data.get("filename")
     sync = data.get("sync", True)
+    loop = data.get("loop", None)
     
     if not filename:
         msg = "缺少轨迹文件名"
@@ -1068,12 +1069,12 @@ def trajectory_play(sid, data):
         return
     
     try:
-        controller.play_trajectory(filename, sync)
+        controller.play_trajectory(filename, sync, loop_override=loop)
         audit_logger.log_operation(
             "trajectory_play",
-            details={"sid": sid, "filename": filename, "sync": sync},
+            details={"sid": sid, "filename": filename, "sync": sync, "loop": loop},
         )
-        sio.emit('trajectory:started', {"filename": filename}, to=sid)
+        sio.emit('trajectory:started', {"filename": filename, "loop": loop}, to=sid)
         _broadcast_state()
     except Exception as e:
         audit_logger.log_operation(

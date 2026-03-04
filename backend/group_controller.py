@@ -675,13 +675,14 @@ class GroupController:
             return []
         return [f.name for f in TRAJECTORIES_DIR.glob("*.json")]
     
-    def play_trajectory(self, filename: str, sync: bool = True):
+    def play_trajectory(self, filename: str, sync: bool = True, loop_override=None):
         """
         播放轨迹
         
         Args:
             filename: 轨迹文件名
             sync: 是否同步播放（双臂同时开始）
+            loop_override: 循环播放覆盖 (None=使用文件设置, True/False=覆盖)
         """
         if self.playback.state == PlaybackState.PLAYING:
             self._emit_error("已有轨迹正在播放")
@@ -696,6 +697,10 @@ class GroupController:
             self._emit_error("轨迹文件没有轨迹点")
             return
         
+        # 循环设置：前端覆盖 > 文件内设置
+        loop = loop_override if loop_override is not None else trajectory.get("loop", False)
+        print(f"[GroupController] play_trajectory: loop_override={loop_override!r}, file_loop={trajectory.get('loop')!r}, final_loop={loop!r}")
+        
         self._stop_playback.clear()
         self._pause_playback.clear()
         
@@ -708,13 +713,14 @@ class GroupController:
         # 在后台线程中播放
         self._playback_thread = threading.Thread(
             target=self._playback_worker,
-            args=(points, trajectory.get("loop", False), trajectory.get("speed_multiplier", 1.0)),
+            args=(points, loop, trajectory.get("speed_multiplier", 1.0)),
             daemon=True
         )
         self._playback_thread.start()
     
     def _playback_worker(self, points: List[Dict], loop: bool, speed_mult: float):
         """轨迹播放工作线程"""
+        print(f"[GroupController] _playback_worker started: loop={loop!r}, points={len(points)}, speed={speed_mult}")
         try:
             while True:
                 for i, point in enumerate(points):
@@ -754,8 +760,12 @@ class GroupController:
                     delay = point.get("delay", 1.0) / speed_mult
                     time.sleep(delay)
                 
+                print(f"[GroupController] loop iteration done: loop={loop!r}, stop_set={self._stop_playback.is_set()}")
                 if not loop or self._stop_playback.is_set():
                     break
+                # 循环重置进度
+                self.playback.current_point = 0
+                self.playback.progress = 0.0
         
         except Exception as e:
             self._emit_error(f"轨迹播放出错: {e}")
