@@ -64,6 +64,9 @@ socket.on('reconnect_failed', () => {
 socket.on('state:update', (state) => {
     appState = { ...appState, ...state };
     updateUI();
+    if (window.Viewer3D && typeof window.Viewer3D.updateState === 'function') {
+        window.Viewer3D.updateState(appState);
+    }
 });
 
 socket.on('arm:connected', (data) => {

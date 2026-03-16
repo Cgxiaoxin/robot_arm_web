@@ -25,3 +25,14 @@
 {"timestamp": 1773648076.549474, "datetime": "2026-03-16 16:01:16", "session": "20260316_155349", "user": "system", "operation": "go_to_zero", "details": {"sid": "jeUc-gxKRUpc7ybXAAAB", "arm_id": "target"}}
 {"timestamp": 1773648098.092175, "datetime": "2026-03-16 16:01:38", "session": "20260316_155349", "user": "system", "operation": "freedrive_enable", "details": {"sid": "jeUc-gxKRUpc7ybXAAAB", "arm_id": "target"}}
 {"timestamp": 1773648112.2115657, "datetime": "2026-03-16 16:01:52", "session": "20260316_155349", "user": "system", "operation": "freedrive_disable", "details": {"sid": "jeUc-gxKRUpc7ybXAAAB", "arm_id": "target"}}
+{"timestamp": 1773648819.112553, "datetime": "2026-03-16 16:13:39", "session": "20260316_155349", "user": "system", "operation": "arm_deactivate", "details": {"sid": "jeUc-gxKRUpc7ybXAAAB", "arm_id": "all", "target": null}}
+{"timestamp": 1773649191.6093059, "datetime": "2026-03-16 16:19:51", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "XLsO1E1JqK9w9p9lAAAH"}}
+{"timestamp": 1773649223.5201142, "datetime": "2026-03-16 16:20:23", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "D3jMR369HVDcnsIVAAAJ"}}
+{"timestamp": 1773649273.6019282, "datetime": "2026-03-16 16:21:13", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "ehzDsL03BuZeZ89kAAAL"}}
+{"timestamp": 1773649280.0892363, "datetime": "2026-03-16 16:21:20", "session": "20260316_155349", "user": "system", "operation": "arm_connect", "details": {"sid": "D3jMR369HVDcnsIVAAAJ", "arm_id": "both", "left_channel": "can0", "right_channel": "can1", "results": {"left": true, "right": true}}}
+{"timestamp": 1773649292.5414295, "datetime": "2026-03-16 16:21:32", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "wtkdP1SAX76GujRdAAAN"}}
+{"timestamp": 1773649344.487368, "datetime": "2026-03-16 16:22:24", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "pCSs-t0vCg-iVvg4AAAP"}}
+{"timestamp": 1773649834.3595192, "datetime": "2026-03-16 16:30:34", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "qzJ8vIlyk1r4Ov6QAAAR"}}
+{"timestamp": 1773649899.9733174, "datetime": "2026-03-16 16:31:39", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "gzYnaHun9Qf48ksnAAAT"}}
+{"timestamp": 1773650124.9804814, "datetime": "2026-03-16 16:35:24", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "TZUfpc3_zWVl-Wd_AAAV"}}
+{"timestamp": 1773650342.2181575, "datetime": "2026-03-16 16:39:02", "session": "20260316_155349", "user": "system", "operation": "zero_load", "details": {"sid": "oC163ymvI65EbMfcAAAX"}}

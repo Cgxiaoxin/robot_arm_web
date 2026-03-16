@@ -30,9 +30,26 @@
 
     <!-- ==================== 主容器 ==================== -->
     <main class="main-container">
+        <div class="dashboard-grid">
+            
+            <!-- 场景展示区 (3D Viewer) -->
+            <div class="card" style="grid-area: viewer; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
+                <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
+                    <span class="card-title">🤖 3D 孪生预览</span>
+                </div>
+                <div class="card-body" style="padding: 0; min-height: 280px; background: var(--bg-dark); position: relative; flex: 1;">
+                    <div id="viewer3d-container" style="width: 100%; height: 100%; position: absolute; inset: 0;">
+                        <!-- Three.js Canvas 将挂载于此 -->
+                        <canvas id="viewer3d-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
+                        <div id="viewer3d-overlay" style="position: absolute; top: 10px; left: 10px; color: var(--gray-light); font-size: 12px; pointer-events: none;">
+                            3D 孪生引擎 (初始化中...)
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-        <!-- 轨迹播放区 -->
-        <div class="card">
+            <!-- 轨迹播放区 -->
+        <div class="card" style="grid-area: playback;">
             <div class="card-header">
                 <span class="card-title">🎬 轨迹播放</span>
                 <div class="flex gap-2">
@@ -73,7 +90,7 @@
         </div>
 
         <!-- 预设动作区 -->
-        <div class="card">
+        <div class="card" style="grid-area: preset;">
             <div class="card-header">
                 <span class="card-title">🎯 预设动作</span>
             </div>
@@ -108,7 +125,7 @@
         </div>
 
         <!-- 实时监控区 -->
-        <div class="card">
+        <div class="card" style="grid-area: monitor;">
             <div class="card-header">
                 <span class="card-title">📊 实时监控</span>
             </div>
@@ -168,7 +185,7 @@
         </div>
 
         <!-- 群控管理区 -->
-        <div class="card">
+        <div class="card" style="grid-area: group;">
             <div class="card-header">
                 <span class="card-title">🎮 群控管理</span>
             </div>
@@ -191,7 +208,7 @@
         </div>
 
         <!-- Tab 切换区 -->
-        <div class="card">
+        <div class="card" style="grid-area: manual;">
             <div class="tabs">
                 <button class="tab-btn active" data-tab="manual">手动控制</button>
                 <button class="tab-btn" data-tab="cartesian">笛卡尔控制</button>
@@ -701,10 +718,26 @@
             </div>
         </div>
 
+        </div> <!-- End dashboard-grid -->
     </main>
 
     <!-- Socket.IO 客户端 -->
     <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    
+    <!-- Three.js & URDFLoader Import Map -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://esm.sh/three@0.160.0",
+            "three/addons/": "https://esm.sh/three@0.160.0/examples/jsm/",
+            "urdf-loader": "https://esm.sh/urdf-loader@0.12.1"
+        }
+    }
+    </script>
+    
+    <!-- 3D Viewer Logic -->
+    <script type="module" src="js/viewer3d.js?v=4"></script>
+    
     <!-- 主逻辑 -->
     <script src="js/main.js?v=3"></script>
 </body>
