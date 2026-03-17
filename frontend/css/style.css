@@ -590,6 +590,8 @@ body {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+    flex: 1;
+    height: 100%;
 }
 
 @media (max-width: 768px) {
@@ -603,6 +605,8 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: var(--radius-lg);
     padding: 16px;
+    display: flex;
+    flex-direction: column;
 }
 
 .arm-panel-header {
@@ -640,6 +644,7 @@ body {
     width: 100%;
     font-size: 14px;
     border-collapse: collapse;
+    height: 100%;
 }
 
 .motor-table th,
