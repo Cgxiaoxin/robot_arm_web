@@ -34,15 +34,15 @@
             
             <!-- 场景展示区 (3D Viewer) -->
             <div class="card" style="grid-area: viewer; padding: 0; display: flex; flex-direction: column; overflow: hidden;">
-                <div class="card-header" style="border-bottom: 1px solid var(--border-color);">
-                    <span class="card-title">🤖 3D 孪生预览</span>
+                <div class="card-header" style="border-bottom: 1px solid var(--border-color); padding: 16px 24px; margin-bottom: 0;">
+                    <span class="card-title">3D模型预览</span>
                 </div>
                 <div class="card-body" style="padding: 0; min-height: 280px; background: var(--bg-dark); position: relative; flex: 1;">
                     <div id="viewer3d-container" style="width: 100%; height: 100%; position: absolute; inset: 0;">
                         <!-- Three.js Canvas 将挂载于此 -->
                         <canvas id="viewer3d-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
                         <div id="viewer3d-overlay" style="position: absolute; top: 10px; left: 10px; color: var(--gray-light); font-size: 12px; pointer-events: none;">
-                            3D 孪生引擎 (初始化中...)
+                            urdf 可以加载吗？
                         </div>
                     </div>
                 </div>
@@ -97,28 +97,28 @@
             <div class="card-body">
                 <div class="preset-grid">
                     <button class="preset-btn" data-preset="A" onclick="playPreset('A')">
-                        A
-                        <span>待机</span>
+                        <span class="preset-letter">A</span>
+                        <span class="preset-label">待机</span>
                     </button>
                     <button class="preset-btn" data-preset="B" onclick="playPreset('B')">
-                        B
-                        <span>打鼓</span>
+                        <span class="preset-letter">B</span>
+                        <span class="preset-label">打鼓</span>
                     </button>
                     <button class="preset-btn" data-preset="C" onclick="playPreset('C')">
-                        C
-                        <span>弹琴</span>
+                        <span class="preset-letter">C</span>
+                        <span class="preset-label">弹琴</span>
                     </button>
                     <button class="preset-btn" data-preset="D" onclick="playPreset('D')">
-                        D
-                        <span>挥手</span>
+                        <span class="preset-letter">D</span>
+                        <span class="preset-label">挥手</span>
                     </button>
                     <button class="preset-btn" data-preset="E" onclick="playPreset('E')">
-                        E
-                        <span>鞠躬</span>
+                        <span class="preset-letter">E</span>
+                        <span class="preset-label">鞠躬</span>
                     </button>
                     <button class="preset-btn" data-preset="F" onclick="playPreset('F')">
-                        F
-                        <span>自定义</span>
+                        <span class="preset-letter">F</span>
+                        <span class="preset-label">自定义</span>
                     </button>
                 </div>
             </div>
@@ -192,16 +192,28 @@
             <div class="card-body">
                 <div class="target-selector">
                     <div class="target-option" data-target="left">
-                        <strong>仅右臂</strong>
-                        <div style="font-size: 12px; color: var(--gray-light);">can0</div>
+                        <div class="target-icon">🦾</div>
+                        <div class="target-info">
+                            <strong>仅右臂</strong>
+                            <span class="target-sub">CAN0</span>
+                        </div>
+                        <div class="target-indicator"></div>
                     </div>
                     <div class="target-option" data-target="right">
-                        <strong>仅左臂</strong>
-                        <div style="font-size: 12px; color: var(--gray-light);">can1</div>
+                        <div class="target-icon">🦾</div>
+                        <div class="target-info">
+                            <strong>仅左臂</strong>
+                            <span class="target-sub">CAN1</span>
+                        </div>
+                        <div class="target-indicator"></div>
                     </div>
                     <div class="target-option active" data-target="both">
-                        <strong>双臂同步</strong>
-                        <div style="font-size: 12px; color: var(--gray-light);">同时控制</div>
+                        <div class="target-icon">⚙️</div>
+                        <div class="target-info">
+                            <strong>双臂同步</strong>
+                            <span class="target-sub">同时控制</span>
+                        </div>
+                        <div class="target-indicator"></div>
                     </div>
                 </div>
             </div>

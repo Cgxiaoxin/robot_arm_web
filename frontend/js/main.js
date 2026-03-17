@@ -243,23 +243,23 @@ function updateArmMonitor(armId) {
     if (!tbody) return;
 
     const armState = appState.arms?.[armId];
-    if (!armState || !armState.motors) {
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center">未连接</td></tr>';
-        return;
-    }
+    const motorsData = armState?.motors || {};
+    const isConnected = !!(armState && armState.connected);
 
     const motorIds = armId === 'left' ? LEFT_MOTOR_IDS : RIGHT_MOTOR_IDS;
     let html = '';
 
     for (const mid of motorIds) {
-        const motor = armState.motors[mid] || {};
+        const motor = motorsData[mid] || {};
         const position = motor.position !== undefined ? motor.position.toFixed(4) : '-';
         const degrees = motor.position !== undefined ? (motor.position * 180 / Math.PI).toFixed(1) : '-';
         const limits = appState.joint_limits?.[armId]?.[mid];
         const minText = limits && typeof limits.min === 'number' ? limits.min.toFixed(2) : '-';
         const maxText = limits && typeof limits.max === 'number' ? limits.max.toFixed(2) : '-';
-        const enabled = motor.enabled ? '使能' : '关闭';
-        const enabledClass = motor.enabled ? 'enabled' : 'disabled';
+        
+        // If not connected, show '未连接', else show enabled/disabled status
+        const enabledText = isConnected ? (motor.enabled ? '使能' : '关闭') : '未连接';
+        const enabledClass = isConnected ? (motor.enabled ? 'enabled' : 'disabled') : '';
 
         html += `
             <tr>
@@ -268,7 +268,7 @@ function updateArmMonitor(armId) {
                 <td>${degrees}°</td>
                 <td>${minText}</td>
                 <td>${maxText}</td>
-                <td class="${enabledClass}">${enabled}</td>
+                <td class="${enabledClass}">${enabledText}</td>
             </tr>
         `;
     }
@@ -1155,6 +1155,7 @@ document.addEventListener('DOMContentLoaded', () => {
     switchTab('manual');
 
     addLog('系统初始化完成', 'success');
+    updateMonitor(); // Render empty rows initially
     // 在未连接状态下，优先从本地零点文件加载一次显示
     loadZeroOffsetFromFile();
     // 先把速度滑杆与输入框同步一次（连接后会再次初始化）

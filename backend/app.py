@@ -87,6 +87,12 @@ def index():
     return send_from_directory(str(FRONTEND_DIR), 'index.html')
 
 
+@app.route('/urdf/<path:path>')
+def urdf_files(path):
+    """Serve URDF and mesh files"""
+    return send_from_directory('/data/coding_pro/robot_arm_web/lansi_arm_sdk/urdf', path)
+
+
 @app.route('/<path:path>')
 def static_files(path):
     """静态文件"""
