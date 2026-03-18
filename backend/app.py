@@ -7,6 +7,7 @@ import eventlet
 eventlet.monkey_patch()  # 必须在最前面: 替换 time.sleep/socket/threading 为协作式版本
 
 import json
+import math
 import os
 import sys
 import time
@@ -422,6 +423,22 @@ def manual_set_position(sid, data):
             sio.emit('error', {"message": msg}, to=sid)
             return
 
+        # 立即读取该电机位置并广播（优化：只读取单个电机）
+        updated_pos = controller.read_single_motor_position(arm_id, motor_id)
+
+        if updated_pos is not None:
+            # 获取zero_offset计算relative_position
+            arm_ctrl = controller.arms.get(arm_id)
+            zero_offset = arm_ctrl.zero_offsets.get(motor_id, 0.0) if arm_ctrl else 0.0
+
+            # 发送单电机位置更新，而非完整状态
+            sio.emit('motor:position_update', {
+                "arm_id": arm_id,
+                "motor_id": motor_id,
+                "position": updated_pos,
+                "relative_position": updated_pos - zero_offset
+            })
+
         audit_logger.log_operation(
             "manual_set_position",
             details={"sid": sid, "arm_id": arm_id, "motor_id": motor_id, "position": position},
@@ -715,6 +732,10 @@ def zero_calibrate(sid, data=None):
     """标定零点"""
     try:
         result = controller.calibrate_zero()
+
+        # 更新笛卡尔坐标系原点
+        cartesian.update_origins()
+
         audit_logger.log_operation(
             "zero_calibrate",
             details={"sid": sid, "result": result},
@@ -1339,6 +1360,9 @@ def _broadcast_state():
                         "x": round(fk["x"] * 1000, 2),  # 转为mm
                         "y": round(fk["y"] * 1000, 2),
                         "z": round(fk["z"] * 1000, 2),
+                        "roll": round(math.degrees(fk["roll"]), 2),
+                        "pitch": round(math.degrees(fk["pitch"]), 2),
+                        "yaw": round(math.degrees(fk["yaw"]), 2),
                     }
             state["cartesian"] = cartesian_data
         except Exception:
@@ -1349,26 +1373,43 @@ def _broadcast_state():
         print(f"[App] 广播状态失败: {e}")
 
 
+
+def _run_in_thread(fn):
+    """在真实线程中执行函数，同时用 eventlet.sleep 让 greenlet 调度器保持响应"""
+    done = [False]
+    def _wrapper():
+        try:
+            fn()
+        finally:
+            done[0] = True
+    t = threading.Thread(target=_wrapper, daemon=True)
+    t.start()
+    # 轮询等待，期间让出事件循环
+    while not done[0]:
+        eventlet.sleep(0.01)
+
+
 def _state_update_loop():
-    """状态更新循环"""
+    """状态更新循环 - 在真实线程中执行 read_positions，避免 RLock 阻塞 eventlet 事件循环"""
     global _state_update_running
     _state_update_running = True
-    
+
     while _state_update_running:
         try:
             # 播放轨迹时跳过位置读取，避免 CAN 总线冲突
+            # 在真实线程中执行，避免 RLock 阻塞 greenlet 调度器
             if controller.playback.state != PlaybackState.PLAYING:
-                controller.read_positions()
-            eventlet.sleep(0.05)  # 50ms
-            
-            # 广播状态
+                _run_in_thread(controller.read_positions)
+
+            # 广播状态给所有客户端
             _broadcast_state()
-            
+
             # 等待间隔
             eventlet.sleep(STATE_UPDATE_INTERVAL / 1000.0)
         except Exception as e:
             print(f"[App] 状态更新出错: {e}")
             eventlet.sleep(1)
+
 
 
 # ==================== 回调设置 ====================

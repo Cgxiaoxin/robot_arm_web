@@ -422,8 +422,11 @@ class GroupController:
                 motors_data = {}
                 if controller is not None and hasattr(controller, 'motors'):
                     for mid, motor in controller.motors.items():
+                        abs_pos = getattr(motor, 'position', 0.0)
+                        zero_off = controller.zero_offsets.get(mid, 0.0)
                         motors_data[mid] = {
-                            "position": getattr(motor, 'position', 0.0),
+                            "position": abs_pos,
+                            "relative_position": abs_pos - zero_off,
                             "velocity": getattr(motor, 'velocity', 0.0),
                             "enabled": getattr(motor, 'enabled', False),
                             "mode": getattr(motor, 'mode', 0)
@@ -456,7 +459,36 @@ class GroupController:
                         controller.read_all_positions()
                     except Exception:
                         pass
-    
+
+    def read_single_motor_position(self, arm_id: str, motor_id: int) -> Optional[float]:
+        """
+        读取单个电机位置（优化性能）
+
+        Args:
+            arm_id: "left" 或 "right"
+            motor_id: 电机ID (51-57 或 61-67)
+
+        Returns:
+            电机位置 (弧度) 或 None
+        """
+        with self._lock:
+            controller = self.arms.get(arm_id)
+            if controller is None:
+                return None
+
+            try:
+                # 只读取单个电机，不读取全部
+                motor = controller.motors.get(motor_id)
+                if motor is None:
+                    return None
+
+                # 发送READ_POSITION命令
+                controller.read_position(motor_id)
+                return motor.position
+            except Exception as e:
+                print(f"[GroupController] 读取电机 {motor_id} 位置失败: {e}")
+                return None
+
     # ==================== 手动控制 ====================
     
     def set_position(self, arm_id: str, motor_id: int, position: float) -> bool:

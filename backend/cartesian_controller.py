@@ -232,6 +232,33 @@ def compute_jacobian(
     return J
 
 
+def _rotation_error(R_current: np.ndarray, R_target: np.ndarray) -> np.ndarray:
+    """
+    计算姿态误差 (轴角表示)
+
+    Args:
+        R_current: 当前旋转矩阵 3x3
+        R_target: 目标旋转矩阵 3x3
+
+    Returns:
+        axis_angle: 轴角误差向量 (3,)
+    """
+    R_err = R_target @ R_current.T
+    trace = np.clip(np.trace(R_err), -1.0, 3.0)
+    angle = np.arccos(np.clip((trace - 1.0) / 2.0, -1.0, 1.0))
+
+    if abs(angle) < 1e-6:
+        return np.zeros(3)
+
+    axis = np.array([
+        R_err[2, 1] - R_err[1, 2],
+        R_err[0, 2] - R_err[2, 0],
+        R_err[1, 0] - R_err[0, 1],
+    ]) / (2.0 * np.sin(angle))
+
+    return axis * angle
+
+
 def inverse_kinematics(
     arm_id: str,
     target_position: List[float],
@@ -270,48 +297,109 @@ def inverse_kinematics(
     target = np.array(target_position, dtype=np.float64)
     
     for iteration in range(max_iterations):
-        # 当前末端位置
+        # 当前末端位姿
         pos, rot = forward_kinematics(arm_id, q.tolist())
-        
+
         # 位置误差
-        error = target - pos
-        error_norm = np.linalg.norm(error)
-        
-        if error_norm < tolerance:
-            return q.tolist()
-        
-        # 计算雅可比 (仅使用位置部分, 3x7)
-        J_full = compute_jacobian(arm_id, q.tolist())
-        J = J_full[:3, :]  # 只用线速度部分
-        
-        # 阻尼最小二乘: dq = J^T (J J^T + λ²I)^{-1} error
+        pos_error = target - pos
+        pos_error_norm = np.linalg.norm(pos_error)
+
+        # 根据是否提供姿态目标选择 3-DOF 或 6-DOF
+        if orientation is not None:
+            # 6-DOF: 位置 + 姿态
+            rot_error = _rotation_error(rot, orientation)
+            rot_error_norm = np.linalg.norm(rot_error)
+
+            if pos_error_norm < tolerance and rot_error_norm < tolerance * 10:
+                return q.tolist()
+
+            # 全6x1误差向量
+            error = np.concatenate([pos_error, rot_error])
+            J = compute_jacobian(arm_id, q.tolist())  # 全6x7雅可比
+            n = 6
+        else:
+            # 3-DOF: 仅位置 (向后兼容)
+            if pos_error_norm < tolerance:
+                return q.tolist()
+
+            error = pos_error
+            J_full = compute_jacobian(arm_id, q.tolist())
+            J = J_full[:3, :]  # 3x7
+            n = 3
+
+        # 阻尼最小二乘 + 自适应阻尼
         JJT = J @ J.T
-        lambda_sq = damping ** 2
-        
+
+        # 计算可操作度 (manipulability index)
+        manipulability = np.sqrt(max(np.linalg.det(JJT), 0.0))
+        manip_threshold = 0.01
+
+        # 接近奇异点时增加阻尼
+        if manipulability < manip_threshold:
+            lambda_adaptive = damping * (1.0 - (manipulability / manip_threshold) ** 2)
+        else:
+            lambda_adaptive = 0.0
+
+        lambda_sq = (damping ** 2) + (lambda_adaptive ** 2)
+
         try:
-            dq = J.T @ np.linalg.solve(JJT + lambda_sq * np.eye(3), error)
+            dq = J.T @ np.linalg.solve(JJT + lambda_sq * np.eye(n), error)
         except np.linalg.LinAlgError:
             return None
-        
+
         # 限制步长
         max_step = 0.2  # 最大单步变化 (rad)
         step_size = np.max(np.abs(dq))
         if step_size > max_step:
             dq *= max_step / step_size
-        
+
         # 更新关节角度
         q = q + dq
-        
+
         # 应用关节限位
         for i in range(7):
             q[i] = np.clip(q[i], joint_limits[i][0], joint_limits[i][1])
-    
+
     # 最终检查
-    pos, _ = forward_kinematics(arm_id, q.tolist())
-    if np.linalg.norm(target - pos) < tolerance * 10:
+    pos, rot = forward_kinematics(arm_id, q.tolist())
+    pos_ok = np.linalg.norm(target - pos) < tolerance * 10
+
+    if orientation is not None:
+        rot_ok = np.linalg.norm(_rotation_error(rot, orientation)) < tolerance * 100
+        if pos_ok and rot_ok:
+            return q.tolist()
+    elif pos_ok:
         return q.tolist()
-    
+
     return None
+
+
+def _rotation_to_rpy(R: np.ndarray) -> np.ndarray:
+    """旋转矩阵 → Roll-Pitch-Yaw (ZYX欧拉角)"""
+    sy = np.sqrt(R[0, 0] ** 2 + R[1, 0] ** 2)
+    singular = sy < 1e-6
+    if not singular:
+        roll = np.arctan2(R[2, 1], R[2, 2])
+        pitch = np.arctan2(-R[2, 0], sy)
+        yaw = np.arctan2(R[1, 0], R[0, 0])
+    else:
+        roll = np.arctan2(-R[1, 2], R[1, 1])
+        pitch = np.arctan2(-R[2, 0], sy)
+        yaw = 0.0
+    return np.array([roll, pitch, yaw])
+
+
+def _rpy_to_rotation(roll: float, pitch: float, yaw: float) -> np.ndarray:
+    """Roll-Pitch-Yaw → 旋转矩阵 (ZYX顺序)"""
+    cr, sr = np.cos(roll), np.sin(roll)
+    cp, sp = np.cos(pitch), np.sin(pitch)
+    cy, sy_val = np.cos(yaw), np.sin(yaw)
+
+    return np.array([
+        [cy*cp, cy*sp*sr - sy_val*cr, cy*sp*cr + sy_val*sr],
+        [sy_val*cp, sy_val*sp*sr + cy*cr, sy_val*sp*cr - cy*sr],
+        [-sp, cp*sr, cp*cr]
+    ])
 
 
 class CartesianController:
@@ -337,31 +425,42 @@ class CartesianController:
             "left": [0.0] * 7,
             "right": [0.0] * 7,
         }
-    
+
+    def update_origins(self):
+        """
+        重新计算坐标系原点 (在零点标定后调用)
+        """
+        for arm_id in ["left", "right"]:
+            pos, rot = forward_kinematics(arm_id, [0.0] * 7)
+            self._origins[arm_id] = pos.copy()
+            self._zero_rotations[arm_id] = rot.copy()
+
     def set_current_joints(self, arm_id: str, joints: List[float]):
         """更新当前关节角度缓存"""
         self._current_joints[arm_id] = list(joints)
     
     def compute_fk(self, arm_id: str, joint_angles: List[float]) -> Dict:
         """
-        计算FK, 返回末端原点坐标系下的位置
-        
+        计算FK, 返回末端原点坐标系下的位置和姿态
+
         Args:
             arm_id: "left" 或 "right"
             joint_angles: 7个关节角度 (弧度)
-        
+
         Returns:
             {
                 "x": float, "y": float, "z": float,  # 相对于末端原点 (米)
                 "abs_x": float, "abs_y": float, "abs_z": float,  # 基座坐标系 (米)
+                "roll": float, "pitch": float, "yaw": float,  # 末端姿态 (弧度)
             }
         """
         pos, rot = forward_kinematics(arm_id, joint_angles)
         origin = self._origins[arm_id]
-        
+
         # 相对于末端原点的坐标
         relative = pos - origin
-        
+        rpy = _rotation_to_rpy(rot)
+
         return {
             "x": float(relative[0]),
             "y": float(relative[1]),
@@ -369,43 +468,54 @@ class CartesianController:
             "abs_x": float(pos[0]),
             "abs_y": float(pos[1]),
             "abs_z": float(pos[2]),
+            "roll": float(rpy[0]),
+            "pitch": float(rpy[1]),
+            "yaw": float(rpy[2]),
         }
     
     def compute_ik(
         self,
         arm_id: str,
         x: float, y: float, z: float,
-        current_joints: Optional[List[float]] = None
+        current_joints: Optional[List[float]] = None,
+        roll: float = None, pitch: float = None, yaw: float = None
     ) -> Optional[Dict]:
         """
         计算IK: 末端原点坐标 → 关节角度
-        
+
         Args:
             arm_id: "left" 或 "right"
             x, y, z: 末端原点坐标系下的目标位置 (米)
             current_joints: 当前关节角度 (用作IK初始猜测)
-        
+            roll, pitch, yaw: 目标姿态 (弧度), 全部提供时启用6-DOF
+
         Returns:
             {"joints": [7个弧度], "error_mm": 位置误差} 或 None
         """
         origin = self._origins[arm_id]
-        
+
         # 转为基座坐标系
         target = origin + np.array([x, y, z])
-        
+
         seed = current_joints or self._current_joints[arm_id]
-        
+
+        # 构建姿态矩阵：用户显式指定姿态时使用指定值，否则维持当前末端姿态防止随机翻转
+        if roll is not None and pitch is not None and yaw is not None:
+            orientation = _rpy_to_rotation(roll, pitch, yaw)
+        else:
+            _, orientation = forward_kinematics(arm_id, seed)
+
         result = inverse_kinematics(
-            arm_id, target.tolist(), seed
+            arm_id, target.tolist(), seed, orientation=orientation
         )
-        
+
         if result is None:
             return None
-        
+
         # 验证
         pos, _ = forward_kinematics(arm_id, result)
         error = np.linalg.norm(target - pos) * 1000  # mm
-        
+
         return {
             "joints": result,
             "error_mm": float(error),
@@ -430,15 +540,16 @@ class CartesianController:
              "new_pos": {"x","y","z"}} 或 None
         """
         seed = current_joints or self._current_joints[arm_id]
-        
-        # 当前末端位置 (基座坐标系)
-        current_pos, _ = forward_kinematics(arm_id, seed)
-        
-        # 新目标位置
+
+        # 当前末端位置和姿态 (基座坐标系)
+        current_pos, current_rot = forward_kinematics(arm_id, seed)
+
+        # 新目标位置（保持当前末端姿态，避免点动时随意翻转）
         target = current_pos + np.array([dx, dy, dz])
-        
+
         result = inverse_kinematics(
-            arm_id, target.tolist(), seed
+            arm_id, target.tolist(), seed,
+            orientation=current_rot,
         )
         
         if result is None:
@@ -447,7 +558,7 @@ class CartesianController:
         # 验证并计算末端原点坐标
         pos, _ = forward_kinematics(arm_id, result)
         error = np.linalg.norm(target - pos) * 1000
-        
+
         origin = self._origins[arm_id]
         relative = pos - origin
         

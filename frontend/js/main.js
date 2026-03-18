@@ -37,6 +37,12 @@ let appState = {
     trajectories: []
 };
 
+// 跟踪正在拖动的滑杆
+const draggingSliders = new Set(); // 存储 "arm_id:motor_id"
+
+// 跟踪待发送的位置命令（防抖）
+const pendingPositionCommands = new Map(); // key: "arm_id:motor_id", value: {position, timeoutId}
+
 // ==================== Socket.IO 事件处理 ====================
 
 socket.on('connect', () => {
@@ -66,6 +72,35 @@ socket.on('state:update', (state) => {
     updateUI();
     if (window.Viewer3D && typeof window.Viewer3D.updateState === 'function') {
         window.Viewer3D.updateState(appState);
+    }
+});
+
+// 接收单电机位置更新（优化后的快速更新）
+socket.on('motor:position_update', (data) => {
+    const { arm_id, motor_id, position, relative_position } = data;
+
+    // 更新状态
+    if (appState.arms?.[arm_id]?.motors?.[motor_id]) {
+        appState.arms[arm_id].motors[motor_id].position = position;
+        appState.arms[arm_id].motors[motor_id].relative_position = relative_position;
+    }
+
+    // 更新UI（仅该电机，跳过正在拖动的）
+    const sliderKey = `${arm_id}:${motor_id}`;
+    if (!draggingSliders.has(sliderKey)) {
+        const slider = document.querySelector(`.joint-slider-small[data-arm="${arm_id}"][data-motor="${motor_id}"]`);
+        if (slider) {
+            const min = parseFloat(slider.min);
+            const max = parseFloat(slider.max);
+            const clamped = clamp(relative_position, isFinite(min) ? min : -3.14, isFinite(max) ? max : 3.14);
+            slider.value = String(clamped);
+
+            const labelId = arm_id === 'left' ? `pos-left-${motor_id}` : `pos-right-${motor_id}`;
+            const labelEl = document.getElementById(labelId);
+            if (labelEl) {
+                labelEl.textContent = clamped.toFixed(4);
+            }
+        }
     }
 });
 
@@ -281,6 +316,13 @@ function updateJointSliders() {
     for (const armId of arms) {
         const motorIds = armId === 'left' ? LEFT_MOTOR_IDS : RIGHT_MOTOR_IDS;
         for (const mid of motorIds) {
+            const sliderKey = `${armId}:${mid}`;
+
+            // 跳过正在拖动的滑杆，防止状态更新覆盖用户输入
+            if (draggingSliders.has(sliderKey)) {
+                continue;
+            }
+
             const slider = document.querySelector(`.joint-slider-small[data-arm="${armId}"][data-motor="${mid}"]`);
             if (!slider) continue;
 
@@ -290,18 +332,38 @@ function updateJointSliders() {
                 slider.max = String(limits.max);
             }
 
-            const pos = appState.arms?.[armId]?.motors?.[mid]?.position;
+            const pos = appState.arms?.[armId]?.motors?.[mid]?.relative_position;
             if (typeof pos === 'number') {
                 const min = parseFloat(slider.min);
                 const max = parseFloat(slider.max);
                 const clamped = clamp(pos, isFinite(min) ? min : -3.14, isFinite(max) ? max : 3.14);
                 slider.value = String(clamped);
 
-                // 数值显示也同步一下，降低视觉延迟
+                // 数值显示同步
                 const labelId = armId === 'left' ? `pos-left-${mid}` : `pos-right-${mid}`;
                 const labelEl = document.getElementById(labelId);
                 if (labelEl) {
                     labelEl.textContent = clamped.toFixed(4);
+                }
+
+                // 更新偏差百分比指示器（距零点偏差占该方向量程的比例）
+                const devId = `dev-${armId}-${mid}`;
+                let devEl = document.getElementById(devId);
+                if (!devEl) {
+                    devEl = document.createElement('div');
+                    devEl.id = devId;
+                    devEl.className = 'joint-deviation dev-ok';
+                    if (labelEl) labelEl.insertAdjacentElement('afterend', devEl);
+                }
+                if (devEl) {
+                    const limitInDir = clamped >= 0
+                        ? (isFinite(max) && max > 0 ? max : 3.14)
+                        : (isFinite(min) && min < 0 ? Math.abs(min) : 3.14);
+                    const devPct = limitInDir > 0 ? Math.round(Math.abs(clamped) / limitInDir * 100) : 0;
+                    const level = devPct >= 85 ? 'dev-danger' : devPct >= 55 ? 'dev-warning' : 'dev-ok';
+                    devEl.className = `joint-deviation ${level}`;
+                    devEl.textContent = `${devPct}%`;
+                    devEl.title = `距零点偏差: ${clamped.toFixed(3)} rad / ${devPct}% 量程`;
                 }
             }
         }
@@ -1008,14 +1070,45 @@ function loadZeroOffsetFromFile() {
 
 function bindJointSliderEvents() {
     document.querySelectorAll('.joint-slider-small').forEach(slider => {
-        slider.addEventListener('input', () => {
-            const armId = slider.dataset.arm;
-            const motorId = Number(slider.dataset.motor);
-            if (!armId || !motorId) return;
+        const armId = slider.dataset.arm;
+        const motorId = Number(slider.dataset.motor);
+        if (!armId || !motorId) return;
 
+        const sliderKey = `${armId}:${motorId}`;
+
+        // 拖动开始
+        slider.addEventListener('mousedown', () => {
+            draggingSliders.add(sliderKey);
+        });
+
+        // 拖动结束
+        slider.addEventListener('mouseup', () => {
+            draggingSliders.delete(sliderKey);
+            const finalPos = parseFloat(slider.value);
+            if (isFinite(finalPos)) {
+                sendPositionCommand(armId, motorId, finalPos);
+            }
+        });
+
+        // 触摸设备支持
+        slider.addEventListener('touchstart', () => {
+            draggingSliders.add(sliderKey);
+        });
+
+        slider.addEventListener('touchend', () => {
+            draggingSliders.delete(sliderKey);
+            const finalPos = parseFloat(slider.value);
+            if (isFinite(finalPos)) {
+                sendPositionCommand(armId, motorId, finalPos);
+            }
+        });
+
+        // 拖动过程中（防抖）
+        slider.addEventListener('input', () => {
             const targetPos = parseFloat(slider.value);
             if (!isFinite(targetPos)) return;
 
+            // 软限位检查
             const limits = appState.joint_limits?.[armId]?.[motorId];
             if (limits) {
                 const min = Number(limits.min);
@@ -1023,25 +1116,52 @@ function bindJointSliderEvents() {
                 if (isFinite(min) && isFinite(max)) {
                     if (targetPos < min || targetPos > max) {
                         showNotification(`关节 ${motorId} 超出安全范围 (${min.toFixed(2)} ~ ${max.toFixed(2)} rad)，已阻止操作。`, 'warning');
-                        addLog(`关节 ${armId}.${motorId} 滑杆尝试越界到 ${targetPos.toFixed(4)} rad，已阻止。`, 'warning');
-                        updateJointSliders();
                         return;
                     }
                 }
             }
 
+            // 更新显示
             const labelId = armId === 'left' ? `pos-left-${motorId}` : `pos-right-${motorId}`;
             const labelEl = document.getElementById(labelId);
             if (labelEl) {
                 labelEl.textContent = targetPos.toFixed(4);
             }
 
-            socket.emit('manual_set_position', {
-                arm_id: armId,
-                motor_id: motorId,
-                position: targetPos
-            });
+            // 防抖：拖动过程中延迟发送命令
+            if (draggingSliders.has(sliderKey)) {
+                debouncedPositionCommand(armId, motorId, targetPos);
+            } else {
+                sendPositionCommand(armId, motorId, targetPos);
+            }
         });
+    });
+}
+
+// 防抖发送位置命令（拖动过程中每100ms最多发送一次）
+function debouncedPositionCommand(armId, motorId, position) {
+    const key = `${armId}:${motorId}`;
+
+    // 清除之前的定时器
+    if (pendingPositionCommands.has(key)) {
+        clearTimeout(pendingPositionCommands.get(key).timeoutId);
+    }
+
+    // 设置新的定时器
+    const timeoutId = setTimeout(() => {
+        sendPositionCommand(armId, motorId, position);
+        pendingPositionCommands.delete(key);
+    }, 100);
+
+    pendingPositionCommands.set(key, { position, timeoutId });
+}
+
+// 发送位置命令
+function sendPositionCommand(armId, motorId, position) {
+    socket.emit('manual_set_position', {
+        arm_id: armId,
+        motor_id: motorId,
+        position: position
     });
 }
 

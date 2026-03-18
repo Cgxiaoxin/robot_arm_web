@@ -24,7 +24,7 @@ PORT = 5000
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
 
 # 状态推送间隔 (毫秒)
-STATE_UPDATE_INTERVAL = 200
+STATE_UPDATE_INTERVAL = 500
 
 # 轨迹文件目录
 TRAJECTORIES_DIR = WEB_ROOT / "trajectories"
