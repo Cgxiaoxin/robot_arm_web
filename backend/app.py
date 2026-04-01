@@ -557,17 +557,8 @@ def _do_smooth_cartesian(sid, data):
 
         target_joints = ik_result["joints"]
 
-        # 获取当前绝对位置
-        start_abs = []
-        for mid in motor_ids:
-            motor = arm_ctrl.motors.get(mid)
-            start_abs.append(getattr(motor, 'position', 0.0) if motor else 0.0)
-
-        # IK输出是 URDF 角度，转为绝对编码器位置
-        target_abs = []
-        for i, mid in enumerate(motor_ids):
-            zero_off = arm_ctrl.zero_offsets.get(mid, 0.0)
-            target_abs.append(target_joints[i] + zero_off)
+        # 使用 URDF 角度做插值，每一步整臂一次性下发，避免逐关节下发造成的抖动。
+        start_joints = current_joints
 
         # 多步插值
         steps = max(1, int(duration * hz))
@@ -575,9 +566,14 @@ def _do_smooth_cartesian(sid, data):
             if _smooth_abort:
                 break
             t = (step_i + 1) / steps
-            for j, mid in enumerate(motor_ids):
-                pos = start_abs[j] + t * (target_abs[j] - start_abs[j])
-                controller.set_position(arm_id, mid, pos)
+            step_joints = [
+                start_joints[j] + t * (target_joints[j] - start_joints[j])
+                for j in range(len(motor_ids))
+            ]
+            ok = controller.set_joint_offsets(arm_id, step_joints)
+            if not ok:
+                sio.emit('error', {"message": f"{arm_id} 臂平滑笛卡尔移动被拒绝"}, to=sid)
+                return
             eventlet.sleep(1.0 / hz)
 
         sio.emit('cartesian:moved', {
@@ -1260,16 +1256,15 @@ def cartesian_move_to(sid, data):
             }, to=sid)
             return
 
-        # IK输出的 joints 是 URDF 角度 (相对零点), 用 set_position_offset 发送
+        # IK输出的 joints 是 URDF 角度 (相对零点), 一次性整臂下发
         joints = ik_result["joints"]
-        for i, mid in enumerate(motor_ids):
-            ok = controller.set_position_offset(arm_id, mid, joints[i])
-            if not ok:
-                sio.emit('error', {
-                    "message": f"关节 {mid} 目标超限或被拒绝",
-                    "kind": "joint_limit_rejected",
-                }, to=sid)
-                return
+        ok = controller.set_joint_offsets(arm_id, joints)
+        if not ok:
+            sio.emit('error', {
+                "message": "目标关节超限或被拒绝",
+                "kind": "joint_limit_rejected",
+            }, to=sid)
+            return
 
         audit_logger.log_operation(
             "cartesian_move_to",
@@ -1326,16 +1321,15 @@ def cartesian_jog(sid, data):
             }, to=sid)
             return
 
-        # IK输出的 joints 是 URDF 角度 (相对零点), 用 set_position_offset 发送
+        # IK输出的 joints 是 URDF 角度 (相对零点), 一次性整臂下发
         joints = ik_result["joints"]
-        for i, mid in enumerate(motor_ids):
-            ok = controller.set_position_offset(arm_id, mid, joints[i])
-            if not ok:
-                sio.emit('error', {
-                    "message": f"关节 {mid} 目标超限或被拒绝",
-                    "kind": "joint_limit_rejected",
-                }, to=sid)
-                return
+        ok = controller.set_joint_offsets(arm_id, joints)
+        if not ok:
+            sio.emit('error', {
+                "message": "目标关节超限或被拒绝",
+                "kind": "joint_limit_rejected",
+            }, to=sid)
+            return
 
         audit_logger.log_operation(
             "cartesian_jog",

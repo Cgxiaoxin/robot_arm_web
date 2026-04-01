@@ -55,10 +55,11 @@ PRESET_ACTIONS = {
 
 # 速度预设
 SPEED_PRESETS = {
-    "very_slow": {"velocity": 0.2, "accel": 0.2, "decel": 0.2},
-    "slow": {"velocity": 0.5, "accel": 0.5, "decel": 0.5},
-    "medium": {"velocity": 1.0, "accel": 1.0, "decel": 1.0},
-    "fast": {"velocity": 2.0, "accel": 2.0, "decel": 2.0},
+    # A7 SDK acceleration 有效范围 [1.0, 50.0]
+    "very_slow": {"velocity": 0.2, "accel": 1.0, "decel": 1.0},
+    "slow": {"velocity": 0.5, "accel": 1.0, "decel": 1.0},
+    "medium": {"velocity": 1.0, "accel": 2.0, "decel": 2.0},
+    "fast": {"velocity": 2.0, "accel": 4.0, "decel": 4.0},
 }
 
 # 软关节限位（弧度）

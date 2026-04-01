@@ -495,11 +495,50 @@ class GroupController:
                 return False
             return self.set_position(arm_id, motor_id, float(position) + runtime.zero_offsets.get(motor_id, 0.0))
 
+    def set_joint_offsets(self, arm_id: str, joint_offsets: List[float]) -> bool:
+        """
+        批量设置 7 关节 URDF 角度(相对零点)。
+        该接口用于笛卡尔控制, 避免逐关节下发导致的抖动。
+        """
+        with self._lock:
+            runtime = self.arms.get(arm_id)
+            if runtime is None:
+                self._emit_error(f"{arm_id} 臂未连接")
+                return False
+            if len(joint_offsets) != len(runtime.motor_ids):
+                self._emit_error(f"{arm_id} 臂关节数量不匹配: 期望 {len(runtime.motor_ids)} 实际 {len(joint_offsets)}")
+                return False
+
+            # 先做整组软限位检查，全部通过后再一次性下发。
+            for idx, mid in enumerate(runtime.motor_ids):
+                joint_offset = float(joint_offsets[idx])
+                limits = self._get_joint_limit(arm_id, mid)
+                if limits is not None and (joint_offset < limits["min"] or joint_offset > limits["max"]):
+                    self._emit_error(
+                        f"{arm_id} 臂电机 {mid} 相对零点目标位置 {joint_offset:.4f} 超出软限位 "
+                        f"[{limits['min']:.4f}, {limits['max']:.4f}]"
+                    )
+                    return False
+
+            target_abs = [
+                float(joint_offsets[idx]) + runtime.zero_offsets.get(mid, 0.0)
+                for idx, mid in enumerate(runtime.motor_ids)
+            ]
+            try:
+                self._set_arm_angles_direct(runtime, target_abs)
+                for idx, mid in enumerate(runtime.motor_ids):
+                    runtime.motors[mid].position = target_abs[idx]
+                return True
+            except Exception as e:
+                self._emit_error(f"批量设置关节失败: {e}")
+                return False
+
     def set_speed(self, velocity: float, accel: float, decel: float, arm_id: Optional[str] = None):
         with self._lock:
             self.speed_params = {"velocity": float(velocity), "accel": float(accel), "decel": float(decel)}
             v = max(0.0, float(velocity))
-            a = max(0.0, float(max(accel, decel)))
+            # A7 SDK acceleration 有效范围为 [1.0, 50.0]，避免初始化时报参数越界。
+            a = min(50.0, max(1.0, float(max(accel, decel))))
             for _, runtime in self._get_target_arms(arm_id):
                 try:
                     runtime.arm.set_velocities([v] * 7)
