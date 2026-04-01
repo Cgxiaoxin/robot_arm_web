@@ -410,151 +410,92 @@
             <!-- 笛卡尔控制 Tab -->
             <div id="tab-cartesian" class="tab-content">
                 <div class="flex items-center gap-3 mb-3">
-                    <label>增量步长:</label>
-                    <select id="cartesian-step" class="trajectory-select" style="width: 120px;">
-                        <option value="0.005">5 mm</option>
-                        <option value="0.01" selected>10 mm</option>
-                        <option value="0.02">20 mm</option>
-                        <option value="0.05">50 mm</option>
-                        <option value="0.1">100 mm</option>
-                    </select>
                     <label>控制臂:</label>
-                    <select id="cartesian-arm" class="trajectory-select" style="width: 100px;">
-                        <option value="left">右臂</option>
-                        <option value="right">左臂</option>
+                    <select id="cartesian-arm" class="trajectory-select" style="width: 120px;">
+                        <option value="left">右臂(51~57)</option>
+                        <option value="right">左臂(61~67)</option>
+                    </select>
+                    <label>Frame:</label>
+                    <select id="motion-frame" class="trajectory-select" style="width: 120px;">
+                        <option value="BASE" selected>BASE</option>
+                        <option value="TOOL">TOOL</option>
+                    </select>
+                    <span id="motion-state-indicator" class="arm-status">IDLE</span>
+                </div>
+
+                <div class="tabs" style="margin-bottom: 14px;">
+                    <button id="motion-mode-ptp" class="tab-btn active" onclick="setMotionMode('CARTESIAN_PTP')">点到点（PTP）</button>
+                    <button id="motion-mode-linear" class="tab-btn" onclick="setMotionMode('CARTESIAN_LINEAR')">直线（LINEAR）</button>
+                    <button id="motion-mode-jog" class="tab-btn" onclick="setMotionMode('CARTESIAN_JOG')">点动（JOG）</button>
+                </div>
+                <div id="motion-mode-desc" class="motion-mode-desc">PTP：末端不保证直线，适合快速到位。</div>
+
+                <div id="motion-pose-section" class="motion-pose-row">
+                    <div class="motion-pose-item"><label>X (mm)</label><input type="number" id="cart-target-x" value="0" step="1"></div>
+                    <div class="motion-pose-item"><label>Y (mm)</label><input type="number" id="cart-target-y" value="0" step="1"></div>
+                    <div class="motion-pose-item"><label>Z (mm)</label><input type="number" id="cart-target-z" value="0" step="1"></div>
+                    <div class="motion-pose-item"><label>Rx (deg)</label><input type="number" id="cart-target-rx" value="0" step="0.1"></div>
+                    <div class="motion-pose-item"><label>Ry (deg)</label><input type="number" id="cart-target-ry" value="0" step="0.1"></div>
+                    <div class="motion-pose-item"><label>Rz (deg)</label><input type="number" id="cart-target-rz" value="0" step="0.1"></div>
+                </div>
+
+                <h4 class="mb-2 mt-3">约束参数</h4>
+                <div class="cartesian-absolute">
+                    <div class="input-group"><label>线速度(m/s)</label><input type="number" id="motion-max-vel" value="0.05" step="0.01"></div>
+                    <div class="input-group"><label>线加速度(m/s²)</label><input type="number" id="motion-max-acc" value="0.10" step="0.01"></div>
+                    <div class="input-group"><label>角速度(rad/s)</label><input type="number" id="motion-max-ang-vel" value="0.30" step="0.01"></div>
+                    <div class="input-group"><label>角加速度(rad/s²)</label><input type="number" id="motion-max-ang-acc" value="0.10" step="0.01"></div>
+                    <button class="btn btn-outline" onclick="resetMotionConstraints()">恢复默认</button>
+                </div>
+
+                <h4 class="mb-2 mt-3">执行控制</h4>
+                <div class="flex gap-3">
+                    <button id="btn-motion-exec" class="btn btn-success" onclick="executeMotion()">执行目标位姿</button>
+                    <button id="btn-motion-pause" class="btn btn-warning" onclick="pauseMotion()" disabled>暂停</button>
+                    <button id="btn-motion-resume" class="btn btn-primary" onclick="resumeMotion()" disabled>继续</button>
+                    <button id="btn-motion-cancel" class="btn btn-danger" onclick="cancelMotion()" disabled>取消</button>
+                    <button class="btn btn-emergency" onclick="emergencyStop()">急停</button>
+                </div>
+
+                <h4 id="motion-jog-title" class="mb-2 mt-3">Jog 点动（长按连续）</h4>
+                <div id="motion-jog-controls" class="flex items-center gap-3 mb-2">
+                    <label>位置步长:</label>
+                    <select id="cartesian-step-mm" class="trajectory-select" style="width: 120px;">
+                        <option value="1">1 mm</option>
+                        <option value="2">2 mm</option>
+                        <option value="5" selected>5 mm</option>
+                        <option value="10">10 mm</option>
+                        <option value="20">20 mm</option>
+                    </select>
+                    <label>姿态步长:</label>
+                    <select id="cartesian-step-deg" class="trajectory-select" style="width: 120px;">
+                        <option value="0.5">0.5 deg</option>
+                        <option value="1" selected>1 deg</option>
+                        <option value="2">2 deg</option>
+                        <option value="5">5 deg</option>
                     </select>
                 </div>
-
-                <!-- 实时位置显示 -->
-                <div class="cartesian-monitor">
-                    <div class="cartesian-arm-panel">
-                        <div class="cartesian-panel-header">右臂末端位置</div>
-                        <div class="cartesian-coords">
-                            <div class="coord-item coord-x">
-                                <span class="coord-label">X</span>
-                                <span class="coord-value" id="cart-left-x">0.00</span>
-                                <span class="coord-unit">mm</span>
-                            </div>
-                            <div class="coord-item coord-y">
-                                <span class="coord-label">Y</span>
-                                <span class="coord-value" id="cart-left-y">0.00</span>
-                                <span class="coord-unit">mm</span>
-                            </div>
-                            <div class="coord-item coord-z">
-                                <span class="coord-label">Z</span>
-                                <span class="coord-value" id="cart-left-z">0.00</span>
-                                <span class="coord-unit">mm</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="cartesian-arm-panel">
-                        <div class="cartesian-panel-header">左臂末端位置</div>
-                        <div class="cartesian-coords">
-                            <div class="coord-item coord-x">
-                                <span class="coord-label">X</span>
-                                <span class="coord-value" id="cart-right-x">0.00</span>
-                                <span class="coord-unit">mm</span>
-                            </div>
-                            <div class="coord-item coord-y">
-                                <span class="coord-label">Y</span>
-                                <span class="coord-value" id="cart-right-y">0.00</span>
-                                <span class="coord-unit">mm</span>
-                            </div>
-                            <div class="coord-item coord-z">
-                                <span class="coord-label">Z</span>
-                                <span class="coord-value" id="cart-right-z">0.00</span>
-                                <span class="coord-unit">mm</span>
-                            </div>
-                        </div>
-                    </div>
+                <div id="motion-jog-grid" class="cartesian-jog-grid">
+                    <div class="jog-axis"><div class="jog-axis-label">X</div><div class="jog-axis-buttons"><button class="btn btn-outline jog-hold-btn" data-axis="x" data-sign="-1">-X</button><button class="btn btn-outline jog-hold-btn" data-axis="x" data-sign="1">+X</button></div></div>
+                    <div class="jog-axis"><div class="jog-axis-label">Y</div><div class="jog-axis-buttons"><button class="btn btn-outline jog-hold-btn" data-axis="y" data-sign="-1">-Y</button><button class="btn btn-outline jog-hold-btn" data-axis="y" data-sign="1">+Y</button></div></div>
+                    <div class="jog-axis"><div class="jog-axis-label">Z</div><div class="jog-axis-buttons"><button class="btn btn-outline jog-hold-btn" data-axis="z" data-sign="-1">-Z</button><button class="btn btn-outline jog-hold-btn" data-axis="z" data-sign="1">+Z</button></div></div>
+                    <div class="jog-axis"><div class="jog-axis-label">Rx</div><div class="jog-axis-buttons"><button class="btn btn-outline jog-hold-btn" data-axis="rx" data-sign="-1">-Rx</button><button class="btn btn-outline jog-hold-btn" data-axis="rx" data-sign="1">+Rx</button></div></div>
+                    <div class="jog-axis"><div class="jog-axis-label">Ry</div><div class="jog-axis-buttons"><button class="btn btn-outline jog-hold-btn" data-axis="ry" data-sign="-1">-Ry</button><button class="btn btn-outline jog-hold-btn" data-axis="ry" data-sign="1">+Ry</button></div></div>
+                    <div class="jog-axis"><div class="jog-axis-label">Rz</div><div class="jog-axis-buttons"><button class="btn btn-outline jog-hold-btn" data-axis="rz" data-sign="-1">-Rz</button><button class="btn btn-outline jog-hold-btn" data-axis="rz" data-sign="1">+Rz</button></div></div>
                 </div>
 
-                <!-- 增量控制 -->
-                <h4 class="mb-2 mt-3">增量控制 (点动)</h4>
-                <div class="cartesian-jog-grid">
-                    <div class="jog-axis">
-                        <div class="jog-axis-label">X 轴</div>
-                        <div class="jog-axis-buttons">
-                            <button class="btn btn-outline jog-btn-neg" onclick="cartesianJog('x', -1)">− X</button>
-                            <button class="btn btn-outline jog-btn-pos" onclick="cartesianJog('x', 1)">+ X</button>
-                        </div>
-                    </div>
-                    <div class="jog-axis">
-                        <div class="jog-axis-label">Y 轴</div>
-                        <div class="jog-axis-buttons">
-                            <button class="btn btn-outline jog-btn-neg" onclick="cartesianJog('y', -1)">− Y</button>
-                            <button class="btn btn-outline jog-btn-pos" onclick="cartesianJog('y', 1)">+ Y</button>
-                        </div>
-                    </div>
-                    <div class="jog-axis">
-                        <div class="jog-axis-label">Z 轴</div>
-                        <div class="jog-axis-buttons">
-                            <button class="btn btn-outline jog-btn-neg" onclick="cartesianJog('z', -1)">− Z</button>
-                            <button class="btn btn-outline jog-btn-pos" onclick="cartesianJog('z', 1)">+ Z</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 滑杆 + 数值直达控制 -->
-                <h4 class="mb-2 mt-3">坐标滑杆控制</h4>
-                <div class="cartesian-slider-section">
-                    <div class="cart-slider-row">
-                        <span class="cart-slider-label cart-label-x">X</span>
-                        <span class="cart-slider-min">-500</span>
-                        <input class="cart-slider" type="range" id="cart-slider-x" min="-500" max="500" step="1"
-                            value="0">
-                        <span class="cart-slider-max">500</span>
-                        <div class="cart-slider-input-group">
-                            <input type="number" class="cart-slider-input" id="cart-input-x" value="0" step="1">
-                            <span class="cart-slider-unit">mm</span>
-                            <button class="btn btn-success btn-sm" onclick="cartesianInputMove('x')">移动</button>
-                        </div>
-                    </div>
-                    <div class="cart-slider-row">
-                        <span class="cart-slider-label cart-label-y">Y</span>
-                        <span class="cart-slider-min">-500</span>
-                        <input class="cart-slider" type="range" id="cart-slider-y" min="-500" max="500" step="1"
-                            value="0">
-                        <span class="cart-slider-max">500</span>
-                        <div class="cart-slider-input-group">
-                            <input type="number" class="cart-slider-input" id="cart-input-y" value="0" step="1">
-                            <span class="cart-slider-unit">mm</span>
-                            <button class="btn btn-success btn-sm" onclick="cartesianInputMove('y')">移动</button>
-                        </div>
-                    </div>
-                    <div class="cart-slider-row">
-                        <span class="cart-slider-label cart-label-z">Z</span>
-                        <span class="cart-slider-min">-500</span>
-                        <input class="cart-slider" type="range" id="cart-slider-z" min="-500" max="500" step="1"
-                            value="0">
-                        <span class="cart-slider-max">500</span>
-                        <div class="cart-slider-input-group">
-                            <input type="number" class="cart-slider-input" id="cart-input-z" value="0" step="1">
-                            <span class="cart-slider-unit">mm</span>
-                            <button class="btn btn-success btn-sm" onclick="cartesianInputMove('z')">移动</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 绝对坐标一键移动 -->
-                <h4 class="mb-2 mt-3">绝对坐标移动</h4>
-                <div class="cartesian-absolute">
-                    <div class="input-group">
-                        <label>X (mm):</label>
-                        <input type="number" id="cart-target-x" value="0" step="1">
-                    </div>
-                    <div class="input-group">
-                        <label>Y (mm):</label>
-                        <input type="number" id="cart-target-y" value="0" step="1">
-                    </div>
-                    <div class="input-group">
-                        <label>Z (mm):</label>
-                        <input type="number" id="cart-target-z" value="0" step="1">
-                    </div>
-                    <button class="btn btn-success" onclick="cartesianMoveTo()">移动到目标</button>
+                <h4 class="mb-2 mt-3">反馈区</h4>
+                <div class="progress-bar">
+                    <div id="motion-progress-fill" class="progress-fill"></div>
+                    <span id="motion-progress-text" class="progress-text">就绪</span>
                 </div>
                 <div class="mt-2" style="color: var(--gray-light); font-size: 13px;">
-                    坐标系: 以关节零位时的末端位置为原点, 单位 mm
+                    当前Pose(mm/deg): <span id="motion-current-pose">-</span> |
+                    目标Pose(mm/deg): <span id="motion-target-pose">-</span> |
+                    误差: <span id="motion-error-text">-</span>
+                </div>
+                <div class="mt-2" style="color: var(--warning); font-size: 13px;">
+                    最近错误: <span id="motion-last-error">无</span>
                 </div>
             </div>
 

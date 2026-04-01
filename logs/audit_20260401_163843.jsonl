@@ -1,0 +1,12 @@
+{"timestamp": 1775032723.9477103, "datetime": "2026-04-01 16:38:43", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "UkV_2x_gjYw0QQMCAAAB"}}
+{"timestamp": 1775032724.7844636, "datetime": "2026-04-01 16:38:44", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "gXWTFgzdBAkrASZ7AAAD"}}
+{"timestamp": 1775032727.7093325, "datetime": "2026-04-01 16:38:47", "session": "20260401_163843", "user": "system", "operation": "arm_connect", "details": {"sid": "gXWTFgzdBAkrASZ7AAAD", "arm_id": "both", "left_channel": "can0", "right_channel": "can1", "results": {"left": true, "right": true}}}
+{"timestamp": 1775032728.7695904, "datetime": "2026-04-01 16:38:48", "session": "20260401_163843", "user": "system", "operation": "arm_init", "details": {"sid": "gXWTFgzdBAkrASZ7AAAD", "arm_id": "target", "mode": 5, "results": {"left": true, "right": true}}}
+{"timestamp": 1775032740.3322878, "datetime": "2026-04-01 16:39:00", "session": "20260401_163843", "user": "system", "operation": "manual_set_position_offset", "details": {"sid": "gXWTFgzdBAkrASZ7AAAD", "arm_id": "left", "motor_id": 51, "position": 0}}
+{"timestamp": 1775032802.77629, "datetime": "2026-04-01 16:40:02", "session": "20260401_163843", "user": "system", "operation": "go_to_zero", "details": {"sid": "gXWTFgzdBAkrASZ7AAAD", "arm_id": "target"}}
+{"timestamp": 1775033137.7871122, "datetime": "2026-04-01 16:45:37", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "0anLfSz0t9K42gTNAAAF"}}
+{"timestamp": 1775033173.939975, "datetime": "2026-04-01 16:46:13", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "rDiFU8CbW5NvdHJwAAAH"}}
+{"timestamp": 1775033672.6693194, "datetime": "2026-04-01 16:54:32", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "sdaqdQRJiSveniIwAAAJ"}}
+{"timestamp": 1775033814.1521928, "datetime": "2026-04-01 16:56:54", "session": "20260401_163843", "user": "system", "operation": "go_to_zero", "details": {"sid": "sdaqdQRJiSveniIwAAAJ", "arm_id": "target"}}
+{"timestamp": 1775033840.3500798, "datetime": "2026-04-01 16:57:20", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "AzOd9n4Fa7T4SsiWAAAL"}}
+{"timestamp": 1775033861.3979893, "datetime": "2026-04-01 16:57:41", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "HSVjd9YAnowJnGDQAAAN"}}

@@ -37,6 +37,42 @@ let appState = {
     trajectories: []
 };
 
+const MOTION_ERROR_TEXT = {
+    ARM_NOT_CONNECTED: '机械臂未连接，请先连接并初始化',
+    IK_UNREACHABLE: '目标位姿不可达，请减小位移或调整姿态',
+    IK_LOW_ACCURACY: 'IK 精度不足，请降低速度并接近可操作区',
+    SINGULARITY_NEAR: '接近奇异位形，请调整姿态后再试',
+    JOINT_LIMIT_REJECTED: '关节超限，命令已拒绝',
+    CONSTRAINT_VIOLATION: '速度/加速度参数超范围',
+    COMMAND_PREEMPTED: '命令被新命令抢占',
+    CAN_TIMEOUT: '通讯超时，请检查总线与供电',
+    INTERNAL_ERROR: '内部错误，请查看系统日志',
+    COMMAND_IN_PROGRESS: '执行中禁止重复提交，请先取消/暂停或等待完成'
+};
+
+let motionState = {
+    mode: 'CARTESIAN_PTP',
+    activeCommandId: null,
+    lifecycle: 'idle',
+    lastError: null,
+    jogTimer: null
+};
+
+const MOTION_MODE_META = {
+    CARTESIAN_PTP: {
+        desc: 'PTP：末端不保证直线，适合快速到位。',
+        execText: '执行目标位姿'
+    },
+    CARTESIAN_LINEAR: {
+        desc: 'LINEAR：末端按直线插补运动，路径更可控。',
+        execText: '执行直线运动'
+    },
+    CARTESIAN_JOG: {
+        desc: 'JOG：使用下方点动按钮做增量运动（支持长按连续）。',
+        execText: '请使用下方点动按钮'
+    }
+};
+
 // 跟踪正在拖动的滑杆
 const draggingSliders = new Set(); // 存储 "arm_id:motor_id"
 
@@ -157,6 +193,82 @@ socket.on('error', (data) => {
     showNotification(data.message, 'error');
 });
 
+socket.on('motion:accepted', (data) => {
+    motionState.activeCommandId = data.command_id;
+    motionState.lifecycle = 'accepted';
+    updateMotionUIState();
+    addLog(`命令已受理: ${data.command_id}`, 'info');
+});
+
+socket.on('motion:status', (data) => {
+    if (data.command_id && motionState.activeCommandId && data.command_id !== motionState.activeCommandId) return;
+    if (data.state) motionState.lifecycle = data.state;
+    const progress = Number(data.progress || 0);
+    const fill = document.getElementById('motion-progress-fill');
+    const text = document.getElementById('motion-progress-text');
+    if (fill) fill.style.width = `${Math.max(0, Math.min(100, progress * 100))}%`;
+    if (text) text.textContent = `${data.state || 'running'} ${Math.round(progress * 100)}%`;
+    if (data.current_pose) {
+        renderMotionCurrentPose(data.current_pose);
+    }
+    if (typeof data.pose_error_mm === 'number') {
+        const errEl = document.getElementById('motion-error-text');
+        if (errEl) errEl.textContent = `${data.pose_error_mm.toFixed(2)} mm`;
+    }
+    updateMotionUIState();
+});
+
+socket.on('motion:paused', () => {
+    motionState.lifecycle = 'paused';
+    updateMotionUIState();
+});
+
+socket.on('motion:resumed', () => {
+    motionState.lifecycle = 'running';
+    updateMotionUIState();
+});
+
+socket.on('motion:completed', (data) => {
+    if (data.command_id && motionState.activeCommandId && data.command_id !== motionState.activeCommandId) return;
+    motionState.lifecycle = 'completed';
+    motionState.activeCommandId = null;
+    const text = document.getElementById('motion-progress-text');
+    if (text) text.textContent = `completed (${data.duration_ms || 0}ms)`;
+    addLog(`命令完成: ${data.command_id}`, 'success');
+    updateMotionUIState();
+});
+
+socket.on('motion:failed', (data) => {
+    if (data.command_id && motionState.activeCommandId && data.command_id !== motionState.activeCommandId) return;
+    motionState.lifecycle = 'failed';
+    motionState.activeCommandId = null;
+    motionState.lastError = data.error_code || 'INTERNAL_ERROR';
+    const msg = `[${motionState.lastError}] ${MOTION_ERROR_TEXT[motionState.lastError] || data.message || '执行失败'}`;
+    const errEl = document.getElementById('motion-last-error');
+    if (errEl) errEl.textContent = msg;
+    addLog(msg, 'error');
+    showNotification(msg, 'error');
+    updateMotionUIState();
+});
+
+socket.on('motion:rejected', (data) => {
+    motionState.lastError = data.error_code || 'CONSTRAINT_VIOLATION';
+    const msg = `[${motionState.lastError}] ${MOTION_ERROR_TEXT[motionState.lastError] || data.message || '命令被拒绝'}`;
+    const errEl = document.getElementById('motion-last-error');
+    if (errEl) errEl.textContent = msg;
+    addLog(msg, 'warning');
+    showNotification(msg, 'warning');
+    updateMotionUIState();
+});
+
+socket.on('motion:cancelled', (data) => {
+    if (data.command_id && motionState.activeCommandId && data.command_id !== motionState.activeCommandId) return;
+    motionState.lifecycle = 'cancelled';
+    motionState.activeCommandId = null;
+    addLog(`命令已取消: ${data.command_id}`, 'info');
+    updateMotionUIState();
+});
+
 socket.on('zero:calibrated', (data) => {
     const result = data?.result || {};
     const parts = [];
@@ -223,6 +335,7 @@ function updateUI() {
     updatePlaybackUI();
     updateTargetUI();
     updateCartesianDisplay();
+    updateMotionUIState();
 }
 
 function updateArmsStatus() {
@@ -917,7 +1030,7 @@ function updateCartesianDisplay() {
     const cart = appState.cartesian;
     if (!cart) return;
 
-    // 取当前选中臂更新滑杆
+    // 取当前选中臂更新反馈
     const selArm = document.getElementById('cartesian-arm')?.value || 'left';
 
     for (const armId of ['left', 'right']) {
@@ -933,18 +1046,17 @@ function updateCartesianDisplay() {
         if (zEl) zEl.textContent = (data.z !== undefined ? data.z.toFixed(2) : '---');
     }
 
-    // 同步滑杆 (仅当用户没有在拖动时)
     const selData = cart[selArm];
     if (selData) {
-        for (const axis of ['x', 'y', 'z']) {
-            if (_cartSliderDragging[axis]) continue;
-            const val = selData[axis];
-            if (val === undefined) continue;
-            const slider = document.getElementById(`cart-slider-${axis}`);
-            const input = document.getElementById(`cart-input-${axis}`);
-            if (slider) slider.value = val.toFixed(0);
-            if (input) input.value = val.toFixed(1);
-        }
+        const currentPose = {
+            x: Number(selData.x || 0) / 1000,
+            y: Number(selData.y || 0) / 1000,
+            z: Number(selData.z || 0) / 1000,
+            rx: Number(selData.roll || 0) * Math.PI / 180,
+            ry: Number(selData.pitch || 0) * Math.PI / 180,
+            rz: Number(selData.yaw || 0) * Math.PI / 180
+        };
+        renderMotionCurrentPose(currentPose);
     }
 }
 
@@ -1006,32 +1118,214 @@ function bindCartesianSliderEvents() {
 }
 
 function cartesianJog(axis, direction) {
-    const armId = document.getElementById('cartesian-arm')?.value || 'left';
-    const step = parseFloat(document.getElementById('cartesian-step')?.value || '0.01');
-    const delta = direction * step;
-
-    socket.emit('cartesian_jog', {
-        arm_id: armId,
-        axis: axis,
-        delta: delta
-    });
-    addLog(`笛卡尔点动: ${armId} ${axis}${delta > 0 ? '+' : ''}${(delta * 1000).toFixed(1)}mm`, 'info');
+    executeJogOnce(axis, direction);
 }
 
 function cartesianMoveTo() {
-    const armId = document.getElementById('cartesian-arm')?.value || 'left';
-    const x = parseFloat(document.getElementById('cart-target-x')?.value || '0');
-    const y = parseFloat(document.getElementById('cart-target-y')?.value || '0');
-    const z = parseFloat(document.getElementById('cart-target-z')?.value || '0');
+    executeMotion();
+}
 
-    // 转为米 (UI输入是mm)
-    socket.emit('cartesian_move_to', {
+function degToRad(deg) {
+    return Number(deg) * Math.PI / 180;
+}
+
+function radToDeg(rad) {
+    return Number(rad) * 180 / Math.PI;
+}
+
+function genCommandId() {
+    if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+    return `cmd-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
+}
+
+function getMotionConstraints() {
+    return {
+        max_velocity: parseFloat(document.getElementById('motion-max-vel')?.value || '0.05'),
+        max_acceleration: parseFloat(document.getElementById('motion-max-acc')?.value || '0.10'),
+        max_angular_velocity: parseFloat(document.getElementById('motion-max-ang-vel')?.value || '0.30'),
+        max_angular_acceleration: parseFloat(document.getElementById('motion-max-ang-acc')?.value || '0.10')
+    };
+}
+
+function getTargetPoseFromUI() {
+    return {
+        x: parseFloat(document.getElementById('cart-target-x')?.value || '0') / 1000,
+        y: parseFloat(document.getElementById('cart-target-y')?.value || '0') / 1000,
+        z: parseFloat(document.getElementById('cart-target-z')?.value || '0') / 1000,
+        rx: degToRad(document.getElementById('cart-target-rx')?.value || '0'),
+        ry: degToRad(document.getElementById('cart-target-ry')?.value || '0'),
+        rz: degToRad(document.getElementById('cart-target-rz')?.value || '0')
+    };
+}
+
+function renderMotionCurrentPose(pose) {
+    const el = document.getElementById('motion-current-pose');
+    if (!el || !pose) return;
+    el.textContent = `x:${(pose.x * 1000).toFixed(1)} y:${(pose.y * 1000).toFixed(1)} z:${(pose.z * 1000).toFixed(1)} | rx:${radToDeg(pose.rx).toFixed(1)} ry:${radToDeg(pose.ry).toFixed(1)} rz:${radToDeg(pose.rz).toFixed(1)}`;
+}
+
+function setMotionMode(mode) {
+    motionState.mode = mode;
+    document.getElementById('motion-mode-ptp')?.classList.toggle('active', mode === 'CARTESIAN_PTP');
+    document.getElementById('motion-mode-linear')?.classList.toggle('active', mode === 'CARTESIAN_LINEAR');
+    document.getElementById('motion-mode-jog')?.classList.toggle('active', mode === 'CARTESIAN_JOG');
+    applyMotionModeUI();
+    updateMotionUIState();
+}
+
+function applyMotionModeUI() {
+    const mode = motionState.mode;
+    const meta = MOTION_MODE_META[mode] || MOTION_MODE_META.CARTESIAN_PTP;
+    const desc = document.getElementById('motion-mode-desc');
+    const execBtn = document.getElementById('btn-motion-exec');
+    const poseSection = document.getElementById('motion-pose-section');
+    const jogTitle = document.getElementById('motion-jog-title');
+    const jogControls = document.getElementById('motion-jog-controls');
+    const jogGrid = document.getElementById('motion-jog-grid');
+
+    if (desc) desc.textContent = meta.desc;
+    if (execBtn) execBtn.textContent = meta.execText;
+
+    const isJog = mode === 'CARTESIAN_JOG';
+    poseSection?.classList.toggle('mode-hidden', isJog);
+    jogTitle?.classList.toggle('mode-hidden', !isJog);
+    jogControls?.classList.toggle('mode-hidden', !isJog);
+    jogGrid?.classList.toggle('mode-hidden', !isJog);
+}
+
+function resetMotionConstraints() {
+    document.getElementById('motion-max-vel').value = '0.05';
+    document.getElementById('motion-max-acc').value = '0.10';
+    document.getElementById('motion-max-ang-vel').value = '0.30';
+    document.getElementById('motion-max-ang-acc').value = '0.10';
+}
+
+function executeMotion() {
+    if (motionState.activeCommandId) {
+        showNotification('执行中禁止重复提交', 'warning');
+        return;
+    }
+    if (motionState.mode === 'CARTESIAN_JOG') {
+        showNotification('JOG 模式请使用下方点动按钮', 'info');
+        return;
+    }
+    const armId = document.getElementById('cartesian-arm')?.value || 'left';
+    const frame = document.getElementById('motion-frame')?.value || 'BASE';
+    const commandId = genCommandId();
+    const targetPose = getTargetPoseFromUI();
+    const payload = {
+        command_id: commandId,
         arm_id: armId,
-        x: x / 1000,
-        y: y / 1000,
-        z: z / 1000
+        motion_type: motionState.mode,
+        frame: frame,
+        target: { pose: targetPose },
+        constraints: getMotionConstraints(),
+        options: { blocking: false, timeout_ms: 30000, blend_radius: 0.0 },
+        client_ts: Date.now()
+    };
+    motionState.lifecycle = 'pending';
+    document.getElementById('motion-target-pose').textContent =
+        `x:${(targetPose.x * 1000).toFixed(1)} y:${(targetPose.y * 1000).toFixed(1)} z:${(targetPose.z * 1000).toFixed(1)} | rx:${radToDeg(targetPose.rx).toFixed(1)} ry:${radToDeg(targetPose.ry).toFixed(1)} rz:${radToDeg(targetPose.rz).toFixed(1)}`;
+    socket.emit('motion:execute', payload);
+    addLog(`发送命令: ${payload.motion_type} arm=${armId} frame=${frame}`, 'info');
+    updateMotionUIState();
+}
+
+function executeJogOnce(axis, direction) {
+    if (motionState.mode !== 'CARTESIAN_JOG') {
+        return;
+    }
+    const armId = document.getElementById('cartesian-arm')?.value || 'left';
+    const frame = document.getElementById('motion-frame')?.value || 'BASE';
+    const mmStep = parseFloat(document.getElementById('cartesian-step-mm')?.value || '5');
+    const degStep = parseFloat(document.getElementById('cartesian-step-deg')?.value || '1');
+    const delta = {
+        dx: 0, dy: 0, dz: 0, drx: 0, dry: 0, drz: 0
+    };
+    if (axis === 'x') delta.dx = direction * mmStep / 1000;
+    if (axis === 'y') delta.dy = direction * mmStep / 1000;
+    if (axis === 'z') delta.dz = direction * mmStep / 1000;
+    if (axis === 'rx') delta.drx = direction * degToRad(degStep);
+    if (axis === 'ry') delta.dry = direction * degToRad(degStep);
+    if (axis === 'rz') delta.drz = direction * degToRad(degStep);
+    socket.emit('motion:execute', {
+        command_id: genCommandId(),
+        arm_id: armId,
+        motion_type: 'CARTESIAN_JOG',
+        frame: frame,
+        target: { delta: delta },
+        constraints: getMotionConstraints(),
+        options: { blocking: false },
+        client_ts: Date.now()
     });
-    addLog(`笛卡尔移动: ${armId} → (${x}, ${y}, ${z}) mm`, 'info');
+}
+
+function pauseMotion() {
+    socket.emit('motion:pause', { command_id: motionState.activeCommandId, arm_id: document.getElementById('cartesian-arm')?.value || 'left' });
+}
+
+function resumeMotion() {
+    socket.emit('motion:resume', { command_id: motionState.activeCommandId, arm_id: document.getElementById('cartesian-arm')?.value || 'left' });
+}
+
+function cancelMotion() {
+    socket.emit('motion:cancel', { command_id: motionState.activeCommandId, arm_id: document.getElementById('cartesian-arm')?.value || 'left' });
+}
+
+function updateMotionUIState() {
+    const state = motionState.lifecycle || 'idle';
+    const indicator = document.getElementById('motion-state-indicator');
+    if (indicator) indicator.textContent = state.toUpperCase();
+    const running = ['accepted', 'planning', 'running', 'paused', 'pending'].includes(state);
+    document.querySelectorAll('#tab-cartesian input, #tab-cartesian select').forEach((el) => {
+        if (['btn-motion-pause', 'btn-motion-resume', 'btn-motion-cancel', 'btn-motion-exec'].includes(el.id)) return;
+        if (state === 'running' || state === 'accepted' || state === 'planning') el.disabled = true;
+        if (!running) el.disabled = false;
+    });
+    const execBtn = document.getElementById('btn-motion-exec');
+    const pauseBtn = document.getElementById('btn-motion-pause');
+    const resumeBtn = document.getElementById('btn-motion-resume');
+    const cancelBtn = document.getElementById('btn-motion-cancel');
+    if (execBtn) {
+        const isJog = motionState.mode === 'CARTESIAN_JOG';
+        execBtn.disabled = running || isJog;
+        execBtn.title = isJog ? 'JOG 模式请使用下方点动按钮' : '';
+    }
+    if (pauseBtn) pauseBtn.disabled = !(state === 'running');
+    if (resumeBtn) resumeBtn.disabled = !(state === 'paused');
+    if (cancelBtn) cancelBtn.disabled = !(state === 'running' || state === 'paused' || state === 'planning' || state === 'accepted');
+
+    document.querySelectorAll('#motion-mode-ptp, #motion-mode-linear, #motion-mode-jog').forEach((btn) => {
+        btn.disabled = running;
+    });
+}
+
+function bindJogHoldEvents() {
+    const buttons = document.querySelectorAll('.jog-hold-btn');
+    buttons.forEach((btn) => {
+        const axis = btn.dataset.axis;
+        const sign = parseInt(btn.dataset.sign || '1', 10);
+        const start = () => {
+            if (motionState.mode !== 'CARTESIAN_JOG') {
+                showNotification('请先切换到 JOG 模式', 'info');
+                return;
+            }
+            if (motionState.jogTimer) clearInterval(motionState.jogTimer);
+            executeJogOnce(axis, sign);
+            motionState.jogTimer = setInterval(() => executeJogOnce(axis, sign), 180);
+        };
+        const stop = () => {
+            if (motionState.jogTimer) {
+                clearInterval(motionState.jogTimer);
+                motionState.jogTimer = null;
+            }
+        };
+        btn.addEventListener('mousedown', start);
+        btn.addEventListener('mouseup', stop);
+        btn.addEventListener('mouseleave', stop);
+        btn.addEventListener('touchstart', (e) => { e.preventDefault(); start(); }, { passive: false });
+        btn.addEventListener('touchend', stop);
+    });
 }
 
 socket.on('cartesian:moved', (data) => {
@@ -1169,7 +1463,7 @@ function sendPositionCommand(armId, motorId, position) {
 
 function switchTab(tabId) {
     // 切换按钮状态
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.tab === tabId);
     });
 
@@ -1256,7 +1550,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('[App] 页面加载完成');
 
     // 绑定Tab切换
-    document.querySelectorAll('.tab-btn').forEach(btn => {
+    document.querySelectorAll('.tab-btn[data-tab]').forEach(btn => {
         btn.addEventListener('click', () => switchTab(btn.dataset.tab));
     });
 
@@ -1270,6 +1564,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 绑定笛卡尔滑杆事件
     bindCartesianSliderEvents();
+    bindJogHoldEvents();
+    setMotionMode('CARTESIAN_PTP');
 
     // 默认显示第一个Tab
     switchTab('manual');
@@ -1323,3 +1619,9 @@ window.trajectorySave = trajectorySave;
 window.trajectoryPreview = trajectoryPreview;
 window.trajectoryCloseEdit = trajectoryCloseEdit;
 window.trajFileAction = trajFileAction;
+window.setMotionMode = setMotionMode;
+window.executeMotion = executeMotion;
+window.pauseMotion = pauseMotion;
+window.resumeMotion = resumeMotion;
+window.cancelMotion = cancelMotion;
+window.resetMotionConstraints = resetMotionConstraints;

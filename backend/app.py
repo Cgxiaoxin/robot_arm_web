@@ -35,6 +35,7 @@ if __package__ is None or __package__ == "":
     from robot_arm_web.backend.group_controller import get_controller, ControlTarget, PlaybackState
     from robot_arm_web.backend.safety_controller import AuditLogger
     from robot_arm_web.backend.cartesian_controller import get_cartesian_controller
+    from robot_arm_web.backend.motion_service import MotionService
 else:
     from .config import (
         HOST,
@@ -50,6 +51,7 @@ else:
     from .group_controller import get_controller, ControlTarget, PlaybackState
     from .safety_controller import AuditLogger
     from .cartesian_controller import get_cartesian_controller
+    from .motion_service import MotionService
 
 # 创建Flask应用
 BASE_DIR = Path(__file__).resolve().parent
@@ -72,6 +74,14 @@ controller = get_controller()
 
 # 笛卡尔控制器
 cartesian = get_cartesian_controller()
+
+# 统一运动服务
+motion_service = MotionService(
+    controller=controller,
+    cartesian=cartesian,
+    emit_fn=sio.emit,
+    get_joints_fn=lambda arm_ctrl, arm_id: _get_urdf_joints(arm_ctrl, arm_id),
+)
 
 # 审计日志
 audit_logger = AuditLogger(LOG_DIR)
@@ -595,8 +605,29 @@ def smooth_cartesian_move(sid, data):
     data: {"arm_id": "left"|"right", "x": mm, "y": mm, "z": mm, "duration_ms": 500}
     x/y/z 单位: mm (前端传入)
     """
-    # 在后台绿色线程中执行，不阻塞事件循环
-    eventlet.spawn(_do_smooth_cartesian, sid, data)
+    # 旧协议兼容: smooth_cartesian_move(mm) -> motion:execute(CARTESIAN_LINEAR,m)
+    payload = {
+        "command_id": data.get("command_id") or f"legacy-smooth-{int(time.time() * 1000)}",
+        "arm_id": data.get("arm_id", "left"),
+        "motion_type": "CARTESIAN_LINEAR",
+        "frame": "BASE",
+        "target": {
+            "pose": {
+                "x": float(data.get("x", 0.0)) / 1000.0,
+                "y": float(data.get("y", 0.0)) / 1000.0,
+                "z": float(data.get("z", 0.0)) / 1000.0,
+            }
+        },
+        "constraints": {},
+        "options": {"blocking": False},
+    }
+    motion_service.execute(
+        sid=sid,
+        payload=payload,
+        legacy_event="smooth_cartesian_move",
+        deprecated=True,
+        allow_preempt=True,
+    )
 
 
 @sio.event
@@ -1220,64 +1251,31 @@ def cartesian_move_to(sid, data):
     data: {"arm_id": "left"|"right", "x": 0.1, "y": 0.2, "z": 0.3}
     坐标单位: 米 (末端原点坐标系)
     """
-    arm_id = data.get("arm_id", "left")
-    x = data.get("x")
-    y = data.get("y")
-    z = data.get("z")
-
-    if x is None or y is None or z is None:
-        sio.emit('error', {"message": "笛卡尔控制缺少 x/y/z 参数"}, to=sid)
-        return
-
-    try:
-        arm_ctrl = controller.arms.get(arm_id)
-        if arm_ctrl is None:
-            sio.emit('error', {"message": f"{arm_id} 臂未连接"}, to=sid)
-            return
-
-        # 获取当前关节角度作为IK种子 (URDF坐标系)
-        motor_ids = LEFT_MOTOR_IDS if arm_id == "left" else RIGHT_MOTOR_IDS
-        current_joints = _get_urdf_joints(arm_ctrl, arm_id)
-
-        # IK求解
-        ik_result = cartesian.compute_ik(arm_id, float(x), float(y), float(z), current_joints)
-
-        if ik_result is None:
-            sio.emit('error', {
-                "message": f"IK求解失败: 目标位置 ({x:.4f}, {y:.4f}, {z:.4f}) 不可达",
-                "kind": "ik_unreachable",
-            }, to=sid)
-            return
-
-        if ik_result["error_mm"] > 5.0:
-            sio.emit('error', {
-                "message": f"IK精度不足: {ik_result['error_mm']:.2f}mm",
-                "kind": "ik_low_accuracy",
-            }, to=sid)
-            return
-
-        # IK输出的 joints 是 URDF 角度 (相对零点), 一次性整臂下发
-        joints = ik_result["joints"]
-        ok = controller.set_joint_offsets(arm_id, joints)
-        if not ok:
-            sio.emit('error', {
-                "message": "目标关节超限或被拒绝",
-                "kind": "joint_limit_rejected",
-            }, to=sid)
-            return
-
-        audit_logger.log_operation(
-            "cartesian_move_to",
-            details={"sid": sid, "arm_id": arm_id, "x": x, "y": y, "z": z,
-                     "error_mm": ik_result["error_mm"]},
-        )
-        sio.emit('cartesian:moved', {
-            "arm_id": arm_id,
-            "x": x, "y": y, "z": z,
-            "error_mm": ik_result["error_mm"],
-        }, to=sid)
-    except Exception as e:
-        sio.emit('error', {"message": f"笛卡尔移动失败: {str(e)}", "kind": "cartesian_runtime_error"}, to=sid)
+    payload = {
+        "command_id": data.get("command_id") or f"legacy-ptp-{int(time.time() * 1000)}",
+        "arm_id": data.get("arm_id", "left"),
+        "motion_type": "CARTESIAN_PTP",
+        "frame": "BASE",
+        "target": {
+            "pose": {
+                "x": float(data.get("x", 0.0)),
+                "y": float(data.get("y", 0.0)),
+                "z": float(data.get("z", 0.0)),
+                "rx": data.get("rx"),
+                "ry": data.get("ry"),
+                "rz": data.get("rz"),
+            }
+        },
+        "constraints": data.get("constraints", {}),
+        "options": {"blocking": bool(data.get("blocking", False))},
+    }
+    motion_service.execute(
+        sid=sid,
+        payload=payload,
+        legacy_event="cartesian_move_to",
+        deprecated=True,
+        allow_preempt=True,
+    )
 
 
 @sio.event
@@ -1290,61 +1288,62 @@ def cartesian_jog(sid, data):
     """
     arm_id = data.get("arm_id", "left")
     axis = data.get("axis", "x")
-    delta = data.get("delta", 0.01)
+    delta = float(data.get("delta", 0.01))
+    payload = {
+        "command_id": data.get("command_id") or f"legacy-jog-{int(time.time() * 1000)}",
+        "arm_id": arm_id,
+        "motion_type": "CARTESIAN_JOG",
+        "frame": "BASE",
+        "target": {
+            "delta": {
+                "dx": delta if axis == "x" else 0.0,
+                "dy": delta if axis == "y" else 0.0,
+                "dz": delta if axis == "z" else 0.0,
+                "drx": 0.0,
+                "dry": 0.0,
+                "drz": 0.0,
+            }
+        },
+        "constraints": data.get("constraints", {}),
+        "options": {"blocking": False},
+    }
+    motion_service.execute(
+        sid=sid,
+        payload=payload,
+        legacy_event="cartesian_jog",
+        deprecated=True,
+        allow_preempt=True,
+    )
 
-    try:
-        arm_ctrl = controller.arms.get(arm_id)
-        if arm_ctrl is None:
-            sio.emit('error', {"message": f"{arm_id} 臂未连接"}, to=sid)
-            return
 
-        motor_ids = LEFT_MOTOR_IDS if arm_id == "left" else RIGHT_MOTOR_IDS
-        current_joints = _get_urdf_joints(arm_ctrl, arm_id)
+@sio.on("motion:execute")
+def motion_execute(sid, data):
+    """统一运动执行入口: motion:execute"""
+    motion_service.execute(sid=sid, payload=data or {}, legacy_event=None, deprecated=False, allow_preempt=False)
 
-        dx = float(delta) if axis == "x" else 0.0
-        dy = float(delta) if axis == "y" else 0.0
-        dz = float(delta) if axis == "z" else 0.0
 
-        ik_result = cartesian.compute_ik_delta(arm_id, dx, dy, dz, current_joints)
+@sio.on("motion:cancel")
+def motion_cancel(sid, data=None):
+    """取消命令: motion:cancel"""
+    motion_service.cancel(sid=sid, payload=data or {})
 
-        if ik_result is None:
-            sio.emit('error', {
-                "message": f"增量IK失败: {axis}{'+' if delta > 0 else ''}{delta*1000:.1f}mm 不可达",
-                "kind": "ik_unreachable",
-            }, to=sid)
-            return
 
-        if ik_result["error_mm"] > 5.0:
-            sio.emit('error', {
-                "message": f"增量IK精度不足: {ik_result['error_mm']:.2f}mm",
-                "kind": "ik_low_accuracy",
-            }, to=sid)
-            return
+@sio.on("motion:pause")
+def motion_pause(sid, data=None):
+    """暂停命令: motion:pause"""
+    motion_service.pause(sid=sid, payload=data or {})
 
-        # IK输出的 joints 是 URDF 角度 (相对零点), 一次性整臂下发
-        joints = ik_result["joints"]
-        ok = controller.set_joint_offsets(arm_id, joints)
-        if not ok:
-            sio.emit('error', {
-                "message": "目标关节超限或被拒绝",
-                "kind": "joint_limit_rejected",
-            }, to=sid)
-            return
 
-        audit_logger.log_operation(
-            "cartesian_jog",
-            details={"sid": sid, "arm_id": arm_id, "axis": axis, "delta": delta,
-                     "new_pos": ik_result["new_pos"], "error_mm": ik_result["error_mm"]},
-        )
-        sio.emit('cartesian:jogged', {
-            "arm_id": arm_id,
-            "axis": axis,
-            "delta": delta,
-            "new_pos": ik_result["new_pos"],
-            "error_mm": ik_result["error_mm"],
-        }, to=sid)
-    except Exception as e:
-        sio.emit('error', {"message": f"笛卡尔点动失败: {str(e)}", "kind": "cartesian_runtime_error"}, to=sid)
+@sio.on("motion:resume")
+def motion_resume(sid, data=None):
+    """恢复命令: motion:resume"""
+    motion_service.resume(sid=sid, payload=data or {})
+
+
+@sio.on("motion:query")
+def motion_query(sid, data=None):
+    """查询命令状态: motion:query"""
+    motion_service.query(sid=sid, payload=data or {})
 
 
 # ---------- 状态请求 ----------

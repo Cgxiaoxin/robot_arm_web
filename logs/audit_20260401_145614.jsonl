@@ -71,3 +71,11 @@
 {"timestamp": 1775027977.1009386, "datetime": "2026-04-01 15:19:37", "session": "20260401_145614", "user": "system", "operation": "go_to_zero", "details": {"sid": "6Bp2Uu1C8lnPWS8gAAAJ", "arm_id": "target"}}
 {"timestamp": 1775028316.3456783, "datetime": "2026-04-01 15:25:16", "session": "20260401_145614", "user": "system", "operation": "controller_error", "details": {"message": "轨迹文件不存在: preset_c.json"}}
 {"timestamp": 1775028316.3458483, "datetime": "2026-04-01 15:25:16", "session": "20260401_145614", "user": "system", "operation": "trajectory_play", "details": {"sid": "6Bp2Uu1C8lnPWS8gAAAJ", "filename": "preset_c.json", "sync": true, "loop": null}}
+{"timestamp": 1775028637.1573699, "datetime": "2026-04-01 15:30:37", "session": "20260401_145614", "user": "system", "operation": "zero_load", "details": {"sid": "aNP1RIq_LA1p1bRCAAAL"}}
+{"timestamp": 1775028940.1482997, "datetime": "2026-04-01 15:35:40", "session": "20260401_145614", "user": "system", "operation": "zero_load", "details": {"sid": "lzzLA9GJJPy8_z2iAAAN"}}
+{"timestamp": 1775031001.1540375, "datetime": "2026-04-01 16:10:01", "session": "20260401_145614", "user": "system", "operation": "zero_load", "details": {"sid": "uhcvCgiBGlLStOTXAAAP"}}
+{"timestamp": 1775031154.1482074, "datetime": "2026-04-01 16:12:34", "session": "20260401_145614", "user": "system", "operation": "zero_load", "details": {"sid": "fu4mGE8XxcJAYRrVAAAR"}}
+{"timestamp": 1775031609.1644862, "datetime": "2026-04-01 16:20:09", "session": "20260401_145614", "user": "system", "operation": "zero_load", "details": {"sid": "9cEsoosniFgUqqSBAAAT"}}
+{"timestamp": 1775031671.1110158, "datetime": "2026-04-01 16:21:11", "session": "20260401_145614", "user": "system", "operation": "zero_load", "details": {"sid": "EtBaSYjGvc4Mr82ZAAAV"}}
+{"timestamp": 1775031732.5226755, "datetime": "2026-04-01 16:22:12", "session": "20260401_145614", "user": "system", "operation": "arm_disable", "details": {"sid": "EtBaSYjGvc4Mr82ZAAAV", "arm_id": "target"}}
+{"timestamp": 1775031735.1631944, "datetime": "2026-04-01 16:22:15", "session": "20260401_145614", "user": "system", "operation": "arm_disconnect", "details": {"sid": "EtBaSYjGvc4Mr82ZAAAV", "arm_id": "both"}}
