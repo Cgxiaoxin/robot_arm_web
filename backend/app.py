@@ -238,10 +238,10 @@ def arm_init(sid, data):
     """
     初始化并使能机械臂
     
-    data: {"arm_id": "left" | "right" | null, "mode": 6}
+    data: {"arm_id": "left" | "right" | null, "mode": 5}
     """
     arm_id = data.get("arm_id")
-    mode = data.get("mode", 6)  # 默认轨迹位置模式
+    mode = data.get("mode", 5)  # A7 SDK 轨迹位置模式（PP）
     
     try:
         if arm_id:
@@ -1247,17 +1247,29 @@ def cartesian_move_to(sid, data):
         ik_result = cartesian.compute_ik(arm_id, float(x), float(y), float(z), current_joints)
 
         if ik_result is None:
-            sio.emit('error', {"message": f"IK求解失败: 目标位置 ({x:.4f}, {y:.4f}, {z:.4f}) 不可达"}, to=sid)
+            sio.emit('error', {
+                "message": f"IK求解失败: 目标位置 ({x:.4f}, {y:.4f}, {z:.4f}) 不可达",
+                "kind": "ik_unreachable",
+            }, to=sid)
             return
 
         if ik_result["error_mm"] > 5.0:
-            sio.emit('error', {"message": f"IK精度不足: {ik_result['error_mm']:.2f}mm"}, to=sid)
+            sio.emit('error', {
+                "message": f"IK精度不足: {ik_result['error_mm']:.2f}mm",
+                "kind": "ik_low_accuracy",
+            }, to=sid)
             return
 
         # IK输出的 joints 是 URDF 角度 (相对零点), 用 set_position_offset 发送
         joints = ik_result["joints"]
         for i, mid in enumerate(motor_ids):
-            controller.set_position_offset(arm_id, mid, joints[i])
+            ok = controller.set_position_offset(arm_id, mid, joints[i])
+            if not ok:
+                sio.emit('error', {
+                    "message": f"关节 {mid} 目标超限或被拒绝",
+                    "kind": "joint_limit_rejected",
+                }, to=sid)
+                return
 
         audit_logger.log_operation(
             "cartesian_move_to",
@@ -1270,7 +1282,7 @@ def cartesian_move_to(sid, data):
             "error_mm": ik_result["error_mm"],
         }, to=sid)
     except Exception as e:
-        sio.emit('error', {"message": f"笛卡尔移动失败: {str(e)}"}, to=sid)
+        sio.emit('error', {"message": f"笛卡尔移动失败: {str(e)}", "kind": "cartesian_runtime_error"}, to=sid)
 
 
 @sio.event
@@ -1301,17 +1313,29 @@ def cartesian_jog(sid, data):
         ik_result = cartesian.compute_ik_delta(arm_id, dx, dy, dz, current_joints)
 
         if ik_result is None:
-            sio.emit('error', {"message": f"增量IK失败: {axis}{'+' if delta > 0 else ''}{delta*1000:.1f}mm 不可达"}, to=sid)
+            sio.emit('error', {
+                "message": f"增量IK失败: {axis}{'+' if delta > 0 else ''}{delta*1000:.1f}mm 不可达",
+                "kind": "ik_unreachable",
+            }, to=sid)
             return
 
         if ik_result["error_mm"] > 5.0:
-            sio.emit('error', {"message": f"增量IK精度不足: {ik_result['error_mm']:.2f}mm"}, to=sid)
+            sio.emit('error', {
+                "message": f"增量IK精度不足: {ik_result['error_mm']:.2f}mm",
+                "kind": "ik_low_accuracy",
+            }, to=sid)
             return
 
         # IK输出的 joints 是 URDF 角度 (相对零点), 用 set_position_offset 发送
         joints = ik_result["joints"]
         for i, mid in enumerate(motor_ids):
-            controller.set_position_offset(arm_id, mid, joints[i])
+            ok = controller.set_position_offset(arm_id, mid, joints[i])
+            if not ok:
+                sio.emit('error', {
+                    "message": f"关节 {mid} 目标超限或被拒绝",
+                    "kind": "joint_limit_rejected",
+                }, to=sid)
+                return
 
         audit_logger.log_operation(
             "cartesian_jog",
@@ -1326,7 +1350,7 @@ def cartesian_jog(sid, data):
             "error_mm": ik_result["error_mm"],
         }, to=sid)
     except Exception as e:
-        sio.emit('error', {"message": f"笛卡尔点动失败: {str(e)}"}, to=sid)
+        sio.emit('error', {"message": f"笛卡尔点动失败: {str(e)}", "kind": "cartesian_runtime_error"}, to=sid)
 
 
 # ---------- 状态请求 ----------

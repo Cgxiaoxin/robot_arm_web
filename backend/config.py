@@ -9,6 +9,10 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 WEB_ROOT = Path(__file__).resolve().parents[1]
 
 # CAN配置
+# 结合当前 A7 SDK 实测映射:
+# - right side -> can0
+# - left side  -> can1
+# 项目逻辑臂名 left/right 在 GroupController 内会转换为 SDK side。
 DEFAULT_LEFT_CAN = "can0"
 DEFAULT_RIGHT_CAN = "can1"
 CAN_BITRATE = 1000000

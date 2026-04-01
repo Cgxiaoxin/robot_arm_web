@@ -10,6 +10,11 @@
 - 示教记录
 - 轨迹播放
 - 自由拖动模式
+
+注意:
+- 本文件为历史兼容控制层，当前 `robot_arm_web/backend` 主链路已切换到
+  `linkerbot-py(A7)` 直连实现。
+- 建议新功能优先在 `backend/group_controller.py` 中扩展，不再新增底层原始 CAN 指令逻辑。
 """
 import can
 import struct

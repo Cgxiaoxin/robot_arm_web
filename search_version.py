@@ -8,4 +8,3 @@ time.sleep(0.2)
 motor.read_version()
 time.sleep(0.5)  # 等待返回
 motor.close()
-1

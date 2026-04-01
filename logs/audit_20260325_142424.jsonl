@@ -1,3 +1,0 @@
-{"timestamp": 1774419866.334632, "datetime": "2026-03-25 14:24:26", "session": "20260325_142424", "user": "system", "operation": "zero_load", "details": {"sid": "2U6cGGj_x6Tyc4IgAAAB"}}
-{"timestamp": 1774419867.678827, "datetime": "2026-03-25 14:24:27", "session": "20260325_142424", "user": "system", "operation": "arm_connect", "details": {"sid": "2U6cGGj_x6Tyc4IgAAAB", "arm_id": "both", "left_channel": "can0", "right_channel": "can1", "results": {"left": true, "right": true}}}
-{"timestamp": 1774419872.116631, "datetime": "2026-03-25 14:24:32", "session": "20260325_142424", "user": "system", "operation": "zero_load", "details": {"sid": "Zgs1FElHLO7F1fOkAAAD"}}
