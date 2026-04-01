@@ -1,0 +1,6 @@
+{"timestamp": 1774344617.3413587, "datetime": "2026-03-24 17:30:17", "session": "20260324_173015", "user": "system", "operation": "zero_load", "details": {"sid": "97iH9DhbXThQGpfvAAAB"}}
+{"timestamp": 1774344619.1278908, "datetime": "2026-03-24 17:30:19", "session": "20260324_173015", "user": "system", "operation": "arm_connect", "details": {"sid": "97iH9DhbXThQGpfvAAAB", "arm_id": "both", "left_channel": "can0", "right_channel": "can1", "results": {"left": true, "right": true}}}
+{"timestamp": 1774344633.1094751, "datetime": "2026-03-24 17:30:33", "session": "20260324_173015", "user": "system", "operation": "arm_init", "details": {"sid": "97iH9DhbXThQGpfvAAAB", "arm_id": "target", "mode": 5, "results": {"left": true, "right": true}}}
+{"timestamp": 1774344639.2840035, "datetime": "2026-03-24 17:30:39", "session": "20260324_173015", "user": "system", "operation": "zero_load", "details": {"sid": "HVm_homd7IKZlKyRAAAD"}}
+{"timestamp": 1774344641.1549902, "datetime": "2026-03-24 17:30:41", "session": "20260324_173015", "user": "system", "operation": "arm_deactivate", "details": {"sid": "HVm_homd7IKZlKyRAAAD", "arm_id": "all", "target": null}}
+{"timestamp": 1774344641.970625, "datetime": "2026-03-24 17:30:41", "session": "20260324_173015", "user": "system", "operation": "arm_disconnect", "details": {"sid": "HVm_homd7IKZlKyRAAAD", "arm_id": "both"}}
