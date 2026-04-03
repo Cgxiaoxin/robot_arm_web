@@ -10,3 +10,11 @@
 {"timestamp": 1775033814.1521928, "datetime": "2026-04-01 16:56:54", "session": "20260401_163843", "user": "system", "operation": "go_to_zero", "details": {"sid": "sdaqdQRJiSveniIwAAAJ", "arm_id": "target"}}
 {"timestamp": 1775033840.3500798, "datetime": "2026-04-01 16:57:20", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "AzOd9n4Fa7T4SsiWAAAL"}}
 {"timestamp": 1775033861.3979893, "datetime": "2026-04-01 16:57:41", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "HSVjd9YAnowJnGDQAAAN"}}
+{"timestamp": 1775034040.2594004, "datetime": "2026-04-01 17:00:40", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "xuMjK7Fgi0m4G5hiAAAP"}}
+{"timestamp": 1775034051.992839, "datetime": "2026-04-01 17:00:51", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "ctVHW18_MG7x9Zd3AAAR"}}
+{"timestamp": 1775034175.1104302, "datetime": "2026-04-01 17:02:55", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "BXfWX-OI01rLkxKnAAAT"}}
+{"timestamp": 1775034211.1080778, "datetime": "2026-04-01 17:03:31", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "W0ejm89rVuBcUsUQAAAV"}}
+{"timestamp": 1775034268.104408, "datetime": "2026-04-01 17:04:28", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "JDhRJ6k5tfej9_TcAAAX"}}
+{"timestamp": 1775034289.1094944, "datetime": "2026-04-01 17:04:49", "session": "20260401_163843", "user": "system", "operation": "zero_load", "details": {"sid": "28em4t22ZyR8IF_bAAAZ"}}
+{"timestamp": 1775034557.148258, "datetime": "2026-04-01 17:09:17", "session": "20260401_163843", "user": "system", "operation": "arm_deactivate", "details": {"sid": "28em4t22ZyR8IF_bAAAZ", "arm_id": "all", "target": null}}
+{"timestamp": 1775034558.0713596, "datetime": "2026-04-01 17:09:18", "session": "20260401_163843", "user": "system", "operation": "arm_disconnect", "details": {"sid": "28em4t22ZyR8IF_bAAAZ", "arm_id": "both"}}
