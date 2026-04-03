@@ -11,3 +11,9 @@ dependencies = [
     "python-socketio==5.11.0",
     "pyyaml>=6.0",
 ]
+
+# PyInstaller 仅用于打包，不参与运行时；构建时用: uv sync --extra build
+[project.optional-dependencies]
+build = [
+    "pyinstaller>=6.0",
+]

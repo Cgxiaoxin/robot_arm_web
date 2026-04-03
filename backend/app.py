@@ -14,6 +14,8 @@ import time
 import threading
 from pathlib import Path
 
+import linkerbot.arm.kinetix as _linkerbot_kinetix
+
 from flask import Flask, send_from_directory, jsonify, request
 import socketio
 
@@ -56,6 +58,8 @@ else:
 # 创建Flask应用
 BASE_DIR = Path(__file__).resolve().parent
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
+# linkerbot-py 随包 URDF（替代已移除的 lansi_arm_sdk/urdf）
+URDF_SERVE_DIR = Path(_linkerbot_kinetix.__file__).resolve().parent / "urdf"
 app = Flask(__name__, static_folder=str(FRONTEND_DIR), static_url_path='')
 
 # 创建Socket.IO服务器
@@ -100,8 +104,8 @@ def index():
 
 @app.route('/urdf/<path:path>')
 def urdf_files(path):
-    """Serve URDF and mesh files"""
-    return send_from_directory('/data/coding_pro/robot_arm_web/lansi_arm_sdk/urdf', path)
+    """Serve URDF and mesh files（来自 linkerbot-py 包内资源）"""
+    return send_from_directory(str(URDF_SERVE_DIR), path)
 
 
 @app.route('/<path:path>')
